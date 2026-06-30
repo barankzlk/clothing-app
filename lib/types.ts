@@ -104,12 +104,4 @@ export type SearchProduct = {
   url: string;
   image_url: string | null;
   reason: string;
-  in_stock: boolean;
-  /** True once the product URL has been confirmed reachable (HTTP 200). */
-  verified: boolean;
-};
-
-export type SearchResponse = {
-  results: SearchProduct[];
-  search_summary: string;
 };

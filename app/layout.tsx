@@ -11,7 +11,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "DRIP — your personal fashion search",
+  title: "YAZ — your personal fashion search",
   description:
     "An AI-powered personal stylist. Search real clothing from major shops, filtered to your size, style, and budget.",
 };

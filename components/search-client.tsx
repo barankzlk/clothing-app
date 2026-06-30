@@ -51,7 +51,6 @@ export function SearchClient({
   const [loading, setLoading] = useState(false);
   const [statusIdx, setStatusIdx] = useState(0);
   const [results, setResults] = useState<SearchProduct[]>([]);
-  const [summary, setSummary] = useState("");
   const [searched, setSearched] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
 
@@ -91,7 +90,6 @@ export function SearchClient({
     setLoading(true);
     setSearched(true);
     setResults([]);
-    setSummary("");
     setLastQuery(q);
 
     try {
@@ -110,9 +108,8 @@ export function SearchClient({
         return;
       }
       setResults(data.results ?? []);
-      setSummary(data.search_summary ?? "");
       if ((data.results ?? []).length === 0) {
-        toast.message(data.search_summary || "No matches found. Try rephrasing.");
+        toast.message("No matches found. Try rephrasing or widening your budget.");
       }
     } catch {
       toast.error("Network error. Please try again.");
@@ -307,11 +304,6 @@ export function SearchClient({
 
         {!loading && searched && (
           <div className="space-y-4">
-            {summary && (
-              <p className="text-sm font-light text-muted-foreground">
-                {summary}
-              </p>
-            )}
             {results.length > 0 ? (
               <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
                 {results.map((product) => (
