@@ -1,0 +1,71 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* DRIP editorial palette mapped to shadcn semantic tokens.
+       Values are HSL channels (no hsl() wrapper) per shadcn convention. */
+    --background: 60 11% 98%; /* #FAFAF9 canvas */
+    --foreground: 0 0% 10%; /* #1A1A1A ink */
+
+    --card: 0 0% 100%; /* white cards */
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 0 0% 10%; /* solid dark buttons */
+    --primary-foreground: 60 11% 98%;
+
+    --secondary: 60 5% 96%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 60 5% 96%;
+    --muted-foreground: 0 0% 54%; /* #8A8A8A muted gray */
+
+    --accent: 131 8% 94%; /* faint sage tint for hovers */
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 55% 45%;
+    --destructive-foreground: 60 11% 98%;
+
+    --border: 0 0% 90%; /* #E5E5E5 */
+    --input: 0 0% 90%;
+    --ring: 131 7% 45%; /* #6B7C6E sage focus ring */
+
+    --radius: 0.5rem; /* 8px — capped per spec */
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-light antialiased;
+    font-feature-settings:
+      "rlig" 1,
+      "calt" 1;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-semibold tracking-tight;
+  }
+}
+
+@layer utilities {
+  /* Hide number-input spinners for the budget field. */
+  .no-spinner::-webkit-outer-spin-button,
+  .no-spinner::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  .no-spinner {
+    -moz-appearance: textfield;
+  }
+}
