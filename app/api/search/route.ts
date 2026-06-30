@@ -13,6 +13,20 @@ import { BUDGET_MAX, BUDGET_MIN } from "@/lib/style-tags";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
+// Match by brand label (the part before the TLD) so any storefront TLD of the
+// right brand passes — zalando.de AND zalando.com, aboutyou.de AND aboutyou.com.
+const WHITELIST_LABELS = ALLOWED_DOMAINS.map((d) => d.split(".")[0]);
+
+/** Is this product URL hosted on one of the curated whitelist brands? */
+function inWhitelist(url: string): boolean {
+  try {
+    const segments = new URL(url).hostname.toLowerCase().split(".");
+    return WHITELIST_LABELS.some((label) => segments.includes(label));
+  } catch {
+    return false;
+  }
+}
+
 export async function POST(request: Request) {
   // 1. Require an authenticated user.
   const supabase = await createClient();
@@ -96,15 +110,9 @@ export async function POST(request: Request) {
         system: [
           { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
         ],
-        tools: [
-          {
-            type: "web_search_20250305",
-            name: "web_search",
-            max_uses: 2,
-            // Hard-restrict results to the curated shop whitelist.
-            allowed_domains: ALLOWED_DOMAINS,
-          },
-        ],
+        // No allowed_domains filter — it over-restricted the raw search to
+        // zero hits. We enforce the curated shop whitelist below instead.
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
         messages,
       });
 
@@ -121,13 +129,18 @@ export async function POST(request: Request) {
       break;
     }
 
-    const results = parseSearchResults(text);
+    const parsed = parseSearchResults(text);
+    // Enforce the curated shop whitelist by URL domain.
+    const results = parsed.filter((p) => inWhitelist(p.url));
+
     if (results.length === 0) {
-      // Surfaces in Vercel function logs to diagnose an empty result set.
+      // Surfaces in Vercel function logs to diagnose an empty result set:
+      // - parsed=0 → the model returned no JSON products (raise tokens / prompt)
+      // - parsed>0 but results=0 → it returned non-curated shops (filtered out)
       console.error(
-        `[search] 0 products. stop_reason=${stopReason} textLen=${text.length} preview=${JSON.stringify(
-          text.slice(0, 400),
-        )}`,
+        `[search] 0 results. parsed=${parsed.length} stop_reason=${stopReason} ` +
+          `shops=${JSON.stringify(parsed.slice(0, 8).map((p) => p.shop))} ` +
+          `textLen=${text.length} preview=${JSON.stringify(text.slice(0, 300))}`,
       );
     }
     return NextResponse.json({ results });
