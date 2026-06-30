@@ -70,42 +70,57 @@ export async function POST(request: Request) {
   const systemPrompt = buildSystemPrompt({ profile, budgetMax, occasionFilter });
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  // 4. One cheap search call: Haiku + at most 2 web searches.
+  // 4. Haiku + at most 2 web searches. Output budget must leave room for the
+  //    JSON *after* the search/citation blocks (which also consume output
+  //    tokens), so 4000 — still only ~1-2ct of Haiku output per search.
   try {
-    const message = await anthropic.messages.create({
-      model: SEARCH_MODEL,
-      max_tokens: 1500,
-      system: [
-        {
-          type: "text",
-          text: systemPrompt,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      tools: [
-        {
-          type: "web_search_20250305",
-          name: "web_search",
-          max_uses: 2,
-        },
-      ],
-      messages: [
-        {
-          role: "user",
-          content:
-            `Search for: "${query}". Run at most 2 web searches: "${query} kaufen" ` +
-            `and "${query} online shop". Return at least 20 real products from the ` +
-            `results as JSON only — no commentary.`,
-        },
-      ],
-    });
+    const messages: Anthropic.MessageParam[] = [
+      {
+        role: "user",
+        content:
+          `Search for: "${query}". Run at most 2 web searches: "${query} kaufen" ` +
+          `and "${query} online shop". Return at least 20 real products from the ` +
+          `results as JSON only — no commentary.`,
+      },
+    ];
 
     let text = "";
-    for (const block of message.content) {
-      if (block.type === "text") text += block.text;
+    let stopReason: string | null = null;
+
+    // Resume across web-search `pause_turn` boundaries (up to 3 hops).
+    for (let hop = 0; hop < 3; hop++) {
+      const message = await anthropic.messages.create({
+        model: SEARCH_MODEL,
+        max_tokens: 4000,
+        system: [
+          { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
+        ],
+        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
+        messages,
+      });
+
+      for (const block of message.content) {
+        if (block.type === "text") text += block.text;
+      }
+      stopReason = message.stop_reason;
+
+      if (message.stop_reason === "pause_turn") {
+        // Re-send with the assistant's partial turn so the server resumes.
+        messages.push({ role: "assistant", content: message.content });
+        continue;
+      }
+      break;
     }
 
     const results = parseSearchResults(text);
+    if (results.length === 0) {
+      // Surfaces in Vercel function logs to diagnose an empty result set.
+      console.error(
+        `[search] 0 products. stop_reason=${stopReason} textLen=${text.length} preview=${JSON.stringify(
+          text.slice(0, 400),
+        )}`,
+      );
+    }
     return NextResponse.json({ results });
   } catch (err) {
     const detail =
