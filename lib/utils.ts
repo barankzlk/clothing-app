@@ -42,3 +42,13 @@ export function humanizeTag(tag: string): string {
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 }
+
+/**
+ * Route an external (shop CDN) image through our same-origin proxy so that
+ * hotlink/Referer protection doesn't block it in the browser. Non-http(s)
+ * inputs are returned unchanged.
+ */
+export function proxiedImageUrl(url: string): string {
+  if (!/^https?:\/\//i.test(url)) return url;
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}

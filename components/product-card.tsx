@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Heart, ExternalLink, Trash2, ImageOff, Loader2 } from "lucide-react";
 
-import { cn } from "@/lib/utils";
+import { cn, proxiedImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -40,7 +40,7 @@ export function ProductCard({
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={product.image_url!}
+            src={proxiedImageUrl(product.image_url!)}
             alt={product.title}
             className="h-full w-full object-cover"
             loading="lazy"
