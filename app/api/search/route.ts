@@ -91,13 +91,20 @@ export async function POST(request: Request) {
         {
           type: "web_search_20250305",
           name: "web_search",
-          max_uses: 6,
+          // Room for 2-3 distinct search angles plus a refinement or two.
+          max_uses: 8,
         },
       ],
       messages: [
         {
           role: "user",
-          content: `Find clothing for this request: "${query}". Remember to return only the JSON object described in your instructions.`,
+          content:
+            `Find clothing available to buy and ship in Germany for this request: "${query}".\n` +
+            `Run 2-3 different web searches with product-focused, Germany-oriented queries ` +
+            `(include terms like "kaufen Deutschland", ".de", or "EU") — a broad one, a ` +
+            `style/material-specific one, and a price/occasion-filtered one. Surface a diverse ` +
+            `set of shops (not just the big chains), keep everything within budget, then return ` +
+            `only the JSON object described in your instructions.`,
         },
       ],
     });

@@ -4,9 +4,16 @@ import { humanizeTag } from "@/lib/utils";
 /** Default model for the stylist. Overridable via ANTHROPIC_MODEL env var. */
 export const SEARCH_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
-const EUROPEAN_SHOPS =
-  "Zalando, ASOS, H&M, Mango, Zara, About You, & Other Stories, COS, Uniqlo, " +
-  "Weekday, Arket, Monki, Pull&Bear, Reserved, Shein (only if budget is under €30)";
+/**
+ * Fallback-only examples of where German shoppers buy — used to nudge breadth,
+ * NOT as the default search targets. Deliberately spans department stores,
+ * sportswear, streetwear, and marketplaces so the model doesn't collapse onto
+ * the same 3-4 big chains.
+ */
+const GERMAN_SHOP_EXAMPLES =
+  "department stores (Galeria, Otto, About You, Breuninger, Peek & Cloppenburg), " +
+  "sportswear (Snipes, Foot Locker DE), streetwear (Kickz, 43einhalb), " +
+  "marketplaces (Zalando, Otto), plus niche labels and smaller boutiques";
 
 function line(label: string, value: string | number | null | undefined) {
   return value === null || value === undefined || value === ""
@@ -55,14 +62,26 @@ export function buildSystemPrompt({
     .filter(Boolean)
     .join("\n");
 
-  return `You are a personal fashion stylist and shopping assistant. You help find real, currently available clothing items online.
+  return `You are a personal fashion stylist and shopping assistant for a user based in Germany. You help find real, currently available clothing items that can be bought and shipped within Germany / the EU.
 
 User profile:
 ${profileLines}
 
-Your task: Search the web for real products matching the user's request.
-Focus on major European online shops: ${EUROPEAN_SHOPS}.
-Only return items within the budget of €${budgetMax}. Always include direct product page URLs. If an item doesn't have a clear size match for the user, skip it.
+MARKET — Germany / EU only:
+- Only return items that are actually available to buy and ship to Germany. Prefer German storefronts and .de domains, or pan-EU sites that clearly ship to Germany.
+- Exclude anything that is clearly US-only or does not ship to Germany. All prices in EUR (€).
+- Make your web searches Germany-focused: add terms like "kaufen", "Deutschland", ".de", or "EU" to the query — e.g. "<product> <style> kaufen Deutschland" or "<product> .de".
+
+HOW TO SEARCH — product-first, and diverse shops:
+- Search for the PRODUCT TYPE plus style/material descriptors, NOT shop names. Do not steer toward any particular brand; let the search results surface whichever shops rank. Example query shape: "half zip hoodie cotton oversized kaufen Deutschland".
+- Run 2-3 DIFFERENT search angles for this request to get variety, for example:
+  1) a broad product query,
+  2) a style/material-specific query,
+  3) a price- or occasion-filtered query (within €${budgetMax}).
+- Aim for a diverse mix of retailers in your final results — niche labels, smaller boutiques, department stores, sportswear, streetwear, and general marketplaces — instead of repeating the same few big chains. Try not to return more than ~2 items from any single shop.
+- Only if you need ideas for where German shoppers buy (fallback examples, NOT primary targets — do not limit yourself to these): ${GERMAN_SHOP_EXAMPLES}.
+
+Only return items within the budget of €${budgetMax}. Always include direct product page URLs (prefer .de / EU product pages). If an item doesn't have a clear size match for the user, skip it.
 
 After researching, respond with ONLY a single JSON object (no markdown, no prose, no code fences) in exactly this shape:
 {
@@ -80,7 +99,7 @@ After researching, respond with ONLY a single JSON object (no markdown, no prose
   "search_summary": "Brief one-line summary of what was found"
 }
 
-Return at most 8 results. Every URL must be a real, direct product page you found via web search — never invent URLs. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
+Return at most 8 results, drawn from as many DIFFERENT shops as reasonably possible (avoid filling the list with one or two brands). Every URL must be a real, direct product page you found via web search — never invent URLs, and prefer German/EU product pages. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
 }
 
 /** Extract a JSON object from arbitrary model text. */
