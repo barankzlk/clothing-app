@@ -3,6 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 
 import { createClient } from "@/lib/supabase/server";
 import {
+  ALLOWED_DOMAINS,
   SEARCH_MODEL,
   buildSystemPrompt,
   parseSearchResults,
@@ -95,7 +96,15 @@ export async function POST(request: Request) {
         system: [
           { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
         ],
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
+        tools: [
+          {
+            type: "web_search_20250305",
+            name: "web_search",
+            max_uses: 2,
+            // Hard-restrict results to the curated shop whitelist.
+            allowed_domains: ALLOWED_DOMAINS,
+          },
+        ],
         messages,
       });
 

@@ -12,6 +12,30 @@ export const SEARCH_MODEL =
 export const MAX_RESULTS = 24;
 
 /**
+ * Curated whitelist of well-known shops. Web search is hard-restricted to these
+ * domains (via the tool's allowed_domains), so results never come from random
+ * shops. The model picks which of these fit the product type + budget.
+ */
+export const CURATED_SHOPS = [
+  { name: "Zalando", domain: "zalando.de" },
+  { name: "About You", domain: "aboutyou.de" },
+  { name: "ASOS", domain: "asos.com" },
+  { name: "Otto", domain: "otto.de" },
+  { name: "H&M", domain: "hm.com" },
+  { name: "Zara", domain: "zara.com" },
+  { name: "Mango", domain: "mango.com" },
+  { name: "Breuninger", domain: "breuninger.com" },
+  { name: "Massimo Dutti", domain: "massimodutti.com" },
+  { name: "Meshki", domain: "meshki.com" },
+  { name: "NA-KD", domain: "na-kd.com" },
+] as const;
+
+/** Domains passed to the web_search tool's allowed_domains filter. */
+export const ALLOWED_DOMAINS = CURATED_SHOPS.map((s) => s.domain);
+
+const SHOP_NAMES = CURATED_SHOPS.map((s) => s.name).join(", ");
+
+/**
  * Short, result-first system prompt (well under 200 words). The goal is to
  * always return real products that appear in the web-search results — no
  * URL second-guessing, no empty lists.
@@ -46,7 +70,7 @@ export function buildSystemPrompt({
 ${shopper}
 
 Rules:
-- Search broadly across German/EU/UK shops: Zalando, About You, ASOS, Otto, H&M, Zara, Mango, Breuninger, Massimo Dutti, Meshki, plus smaller boutiques and any other shops that appear.
+- ONLY use these well-known shops: ${SHOP_NAMES}. Never return products from any other shop. Pick the ones that best fit the product type and budget — premium pieces from Breuninger / Massimo Dutti; everyday basics from H&M / Zalando / Otto / About You; trend & going-out from Meshki / NA-KD / ASOS; Zara / Mango for the middle.
 - Return every relevant product the search results show, with its actual URL, title, price in EUR, and shop name. If a product appears in search results, it exists — return it. Do NOT second-guess or verify URLs; just return what you found.
 - Prefer items within budget, but always return at least 20 products. Never return an empty list — broaden the search if needed.
 - Keep "reason" to at most 10 words.
