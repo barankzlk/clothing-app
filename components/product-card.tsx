@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, ExternalLink, Trash2, ImageOff, Loader2 } from "lucide-react";
+import {
+  Heart,
+  ExternalLink,
+  Trash2,
+  ImageOff,
+  Loader2,
+  BadgeCheck,
+} from "lucide-react";
 
 import { cn, proxiedImageUrl } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,6 +21,8 @@ export type ProductCardData = {
   url: string;
   image_url: string | null;
   reason: string;
+  /** Set when the product URL was confirmed reachable (search results only). */
+  verified?: boolean;
 };
 
 export function ProductCard({
@@ -55,9 +64,19 @@ export function ProductCard({
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-          {product.shop}
-        </span>
+        <div className="flex items-center justify-between gap-2">
+          <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            {product.shop}
+          </span>
+          {product.verified && (
+            <span
+              className="inline-flex items-center gap-1 text-[11px] font-medium text-sage"
+              title="Product page confirmed reachable"
+            >
+              <BadgeCheck className="size-3.5" /> Verified
+            </span>
+          )}
+        </div>
         <h3 className="text-sm font-medium leading-snug text-ink">
           {product.title}
         </h3>

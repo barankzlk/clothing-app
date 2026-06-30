@@ -1,19 +1,23 @@
 import type { Profile, SearchProduct } from "@/lib/types";
 import { humanizeTag } from "@/lib/utils";
 
-/** Default model for the stylist. Overridable via ANTHROPIC_MODEL env var. */
-export const SEARCH_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
-
 /**
- * Fallback-only examples of where German shoppers buy — used to nudge breadth,
- * NOT as the default search targets. Deliberately spans department stores,
- * sportswear, streetwear, and marketplaces so the model doesn't collapse onto
- * the same 3-4 big chains.
+ * Default model. Haiku 4.5 keeps each search cheap (~1/3 the token cost of
+ * Sonnet). Overridable via ANTHROPIC_MODEL.
  */
-const GERMAN_SHOP_EXAMPLES =
-  "department stores (Galeria, Otto, About You, Breuninger, Peek & Cloppenburg), " +
-  "sportswear (Snipes, Foot Locker DE), streetwear (Kickz, 43einhalb), " +
-  "marketplaces (Zalando, Otto), plus niche labels and smaller boutiques";
+export const SEARCH_MODEL =
+  process.env.ANTHROPIC_MODEL || "claude-haiku-4-5-20251001";
+
+/** Maximum products returned to the client. */
+export const MAX_RESULTS = 16;
+
+/** Below this many verified products, the route runs one extra search round. */
+export const MIN_VERIFIED = 6;
+
+/** Well-known popular shops the result set must always include some of. */
+const POPULAR_SHOPS =
+  "Zalando, ASOS, About You, H&M, Zara, Mango, Uniqlo, COS, Arket, Weekday, " +
+  "Breuninger, Otto, Peek & Cloppenburg";
 
 function line(label: string, value: string | number | null | undefined) {
   return value === null || value === undefined || value === ""
@@ -55,63 +59,39 @@ export function buildSystemPrompt({
     ),
     line("Style", styles || null),
     line("Fabric preferences", fabrics || null),
-    line("Budget", `max €${budgetMax} per item`),
     line("Occasion", occasion),
-    line("Additional style notes", profile.style_notes),
+    line("Notes", profile.style_notes),
   ]
     .filter(Boolean)
     .join("\n");
 
-  return `You are a personal fashion stylist and shopping assistant for a user based in Germany. You help find real, currently available clothing items that can be bought and shipped within Germany / the EU.
+  return `You are a personal fashion stylist for a user in Germany. Find real, in-stock clothing that ships to Germany / the EU.
 
-User profile:
+User:
 ${profileLines}
 
-MARKET — Germany / EU only:
-- Only return items that are actually available to buy and ship to Germany. Prefer German storefronts and .de domains, or pan-EU sites that clearly ship to Germany.
-- Exclude anything that is clearly US-only or does not ship to Germany. All prices in EUR (€).
-- Make your web searches Germany-focused: add terms like "kaufen", "Deutschland", ".de", or "EU" to the query — e.g. "<product> <style> kaufen Deutschland" or "<product> .de".
+Rules:
+- Germany/EU only: prefer .de / German storefronts and pan-EU shops that ship to Germany; exclude US-only items. Prices in EUR.
+- Product-first search queries with German + availability terms, e.g. "<product> <style> kaufen Deutschland .de auf Lager". Always add "currently available" / "auf Lager" so unavailable items are filtered out.
+- BALANCED SHOP MIX (required, every search): include at least 3-4 items from well-known popular shops (${POPULAR_SHOPS}) AND at least 3-4 items from smaller, niche, or independent shops. Never return only one type.
+- Budget: at most €${budgetMax} per item.
+- REAL PRODUCTS ONLY: only include an item you have DIRECTLY found in search results, with its title, price, and a real, working direct product-page URL. Never invent or guess URLs. If you cannot find a direct link to the product page, skip it entirely. Do not include products based on general brand knowledge. Skip anything marked out of stock / sold out / nicht verfügbar / ausverkauft.
+- Skip items with no clear size match for the user.
 
-HOW TO SEARCH — product-first, and diverse shops:
-- Search for the PRODUCT TYPE plus style/material descriptors, NOT shop names. Do not steer toward any particular brand; let the search results surface whichever shops rank. Example query shape: "half zip hoodie cotton oversized kaufen Deutschland".
-- Run 2-3 DIFFERENT search angles for this request to get variety, for example:
-  1) a broad product query,
-  2) a style/material-specific query,
-  3) a price- or occasion-filtered query (within €${budgetMax}).
-- Aim for a diverse mix of retailers in your final results — niche labels, smaller boutiques, department stores, sportswear, streetwear, and general marketplaces — instead of repeating the same few big chains. Try not to return more than ~2 items from any single shop.
-- Only if you need ideas for where German shoppers buy (fallback examples, NOT primary targets — do not limit yourself to these): ${GERMAN_SHOP_EXAMPLES}.
+Respond with ONLY this JSON (no markdown, no prose, no code fences):
+{"results":[{"title":"...","shop":"...","price":"€XX,XX","url":"https://...","image_url":"https://... or null","reason":"max 15 words on why it suits them","in_stock":true}],"search_summary":"one line"}
 
-Only return items within the budget of €${budgetMax}. Always include direct product page URLs (prefer .de / EU product pages). If an item doesn't have a clear size match for the user, skip it.
-
-After researching, respond with ONLY a single JSON object (no markdown, no prose, no code fences) in exactly this shape:
-{
-  "results": [
-    {
-      "title": "Product name",
-      "shop": "Shop name",
-      "price": "€XX,XX",
-      "url": "https://...",
-      "image_url": "https://... or null",
-      "reason": "One sentence on why this matches the user's style and measurements",
-      "in_stock": true
-    }
-  ],
-  "search_summary": "Brief one-line summary of what was found"
-}
-
-Return at most 8 results, drawn from as many DIFFERENT shops as reasonably possible (avoid filling the list with one or two brands). Every URL must be a real, direct product page you found via web search — never invent URLs, and prefer German/EU product pages. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
+Return up to ${MAX_RESULTS} items, from as many different shops as possible. If you find nothing suitable, return an empty "results" array.`;
 }
 
 /** Extract a JSON object from arbitrary model text. */
 export function extractJson(text: string): unknown | null {
   const trimmed = text.trim();
 
-  // Prefer a fenced ```json block if present.
   const fence = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
   const candidates: string[] = [];
   if (fence?.[1]) candidates.push(fence[1].trim());
 
-  // Fall back to the widest brace span.
   const first = trimmed.indexOf("{");
   const last = trimmed.lastIndexOf("}");
   if (first !== -1 && last > first) candidates.push(trimmed.slice(first, last + 1));
@@ -127,7 +107,14 @@ export function extractJson(text: string): unknown | null {
   return null;
 }
 
-/** Coerce parsed JSON into a clean, validated product list (max 8). */
+/** Clamp a reason string to at most 15 words. */
+function trimReason(reason: string): string {
+  const words = reason.trim().split(/\s+/);
+  if (words.length <= 15) return reason.trim();
+  return words.slice(0, 15).join(" ") + "…";
+}
+
+/** Coerce parsed JSON into a clean, validated product list (max MAX_RESULTS). */
 export function normalizeProducts(parsed: unknown): {
   results: SearchProduct[];
   search_summary: string;
@@ -138,13 +125,14 @@ export function normalizeProducts(parsed: unknown): {
     typeof obj.search_summary === "string" ? obj.search_summary : "";
 
   const results: SearchProduct[] = [];
+  const seen = new Set<string>();
   for (const item of rawResults) {
     if (!item || typeof item !== "object") continue;
     const r = item as Record<string, unknown>;
     const url = typeof r.url === "string" ? r.url.trim() : "";
     const title = typeof r.title === "string" ? r.title.trim() : "";
-    // A product is only useful with a title and a real http(s) URL.
-    if (!title || !/^https?:\/\//i.test(url)) continue;
+    if (!title || !/^https?:\/\//i.test(url) || seen.has(url)) continue;
+    seen.add(url);
 
     results.push({
       title,
@@ -155,10 +143,11 @@ export function normalizeProducts(parsed: unknown): {
         typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url)
           ? r.image_url.trim()
           : null,
-      reason: typeof r.reason === "string" ? r.reason.trim() : "",
+      reason: typeof r.reason === "string" ? trimReason(r.reason) : "",
       in_stock: r.in_stock === false ? false : true,
+      verified: false,
     });
-    if (results.length >= 8) break;
+    if (results.length >= MAX_RESULTS) break;
   }
 
   return { results, search_summary: summary };
