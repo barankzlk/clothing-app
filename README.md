@@ -90,6 +90,6 @@ lib/
   supabase/        Browser, server, and middleware clients
   types.ts         Hand-written DB types (mirror the migration)
   style-tags.ts    Hardcoded style tags, sizes, body shapes, budget
-  search-prompt.ts System prompt builder + response parsing
+  shops.ts         Curated shop → domain map + Clearbit logo helper
 supabase/migrations/  SQL schema
 ```

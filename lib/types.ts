@@ -104,4 +104,6 @@ export type SearchProduct = {
   url: string;
   image_url: string | null;
   reason: string;
+  /** Optional shop logo (Clearbit). Card derives one from the shop name too. */
+  shop_logo?: string | null;
 };
