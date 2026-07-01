@@ -10,11 +10,17 @@ const LOCALE_LANGUAGE: Record<string, string> = {
 };
 
 /** Build the system prompt asking for a handful of concrete search ideas. */
-export function buildSuggestionPrompt(
-  tags: string[],
-  gender: string | null,
-  locale: string | null,
-): string {
+export function buildSuggestionPrompt({
+  tags,
+  query,
+  gender,
+  locale,
+}: {
+  tags: string[];
+  query?: string | null;
+  gender: string | null;
+  locale: string | null;
+}): string {
   const readableTags = tags.map(humanizeTag).join(", ");
   const genderLine =
     gender === "male"
@@ -25,11 +31,25 @@ export function buildSuggestionPrompt(
 
   const language = (locale && LOCALE_LANGUAGE[locale]) || "German";
 
+  const trimmedQuery = query?.trim() || "";
+  const contextLines = [
+    tags.length > 0 ? `Selected style filters: ${readableTags}.` : null,
+    trimmedQuery
+      ? `They are currently typing this into the search bar: "${trimmedQuery}"`
+      : null,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
+  const goal = trimmedQuery
+    ? "that continue, complete, or closely relate to what they're typing"
+    : "that fit these filters";
+
   return `You are a fashion assistant helping someone decide what to search for.
 
-They've selected these style filters: ${readableTags}.${genderLine}
+${contextLines}${genderLine}
 
-Suggest exactly 6 specific, concrete clothing or accessory items that fit these filters — things a person could literally type into a shop's search bar. Keep each one short: 2-4 words. Be creative and varied: mix garment types, don't just restate the filters, and avoid repeating the same category twice (e.g. don't suggest two dresses).
+Suggest exactly 6 specific, concrete clothing or accessory items ${goal} — things a person could literally type into a shop's search bar. Keep each one short: 2-4 words. Be creative and varied: mix garment types, don't just restate the input, and avoid repeating the same category twice (e.g. don't suggest two dresses).
 
 Write every suggestion in ${language}, since these are typed directly into ${language}-language shop search bars — not in English.
 

@@ -122,7 +122,6 @@ export const en = {
     bottom: "Bottom {size}",
     shoe: "Shoe EU {size}",
     budget: "Budget €{amount}",
-    budgetLabel: "Budget per item",
     emptyQuery: "Type something to search for.",
     recentSearches: "Recent Searches",
     clearHistory: "Clear history",
@@ -131,6 +130,15 @@ export const en = {
   shopCard: {
     resultsFor: "See results for “{query}”",
     search: "Search",
+  },
+  swipe: {
+    progress: "{current} / {total} shops",
+    searchNow: "Search now",
+    skip: "Skip",
+    save: "Save",
+    summaryTitleOne: "You saved {count} shop",
+    summaryTitle: "You saved {count} shops",
+    goToFavorites: "Go to favorites",
   },
   favoritesPage: {
     heading: "My favorites",
@@ -278,7 +286,6 @@ export const de: Dict = {
     bottom: "Hose {size}",
     shoe: "Schuh EU {size}",
     budget: "Budget €{amount}",
-    budgetLabel: "Budget pro Teil",
     emptyQuery: "Gib etwas ein, wonach du suchen möchtest.",
     recentSearches: "Letzte Suchen",
     clearHistory: "Verlauf löschen",
@@ -287,6 +294,15 @@ export const de: Dict = {
   shopCard: {
     resultsFor: "Ergebnisse für „{query}“ ansehen",
     search: "Suchen",
+  },
+  swipe: {
+    progress: "{current} / {total} Shops",
+    searchNow: "Jetzt suchen",
+    skip: "Überspringen",
+    save: "Speichern",
+    summaryTitleOne: "Du hast {count} Shop gespeichert",
+    summaryTitle: "Du hast {count} Shops gespeichert",
+    goToFavorites: "Zu den Favoriten",
   },
   favoritesPage: {
     heading: "Meine Favoriten",
@@ -432,7 +448,6 @@ export const pt: Dict = {
     bottom: "Baixo {size}",
     shoe: "Calçado EU {size}",
     budget: "Orçamento €{amount}",
-    budgetLabel: "Orçamento por peça",
     emptyQuery: "Digite algo para buscar.",
     recentSearches: "Buscas Recentes",
     clearHistory: "Limpar histórico",
@@ -441,6 +456,15 @@ export const pt: Dict = {
   shopCard: {
     resultsFor: "Ver resultados para “{query}”",
     search: "Buscar",
+  },
+  swipe: {
+    progress: "{current} / {total} lojas",
+    searchNow: "Buscar agora",
+    skip: "Pular",
+    save: "Salvar",
+    summaryTitleOne: "Você salvou {count} loja",
+    summaryTitle: "Você salvou {count} lojas",
+    goToFavorites: "Ir para favoritos",
   },
   favoritesPage: {
     heading: "Meus favoritos",
