@@ -1,10 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    // Product images are served same-origin through /api/image-proxy and via
-    // plain <img> tags, so we don't rely on the next/image optimizer for them.
-    // `unoptimized` avoids the optimizer entirely for arbitrary shop CDNs.
-    unoptimized: true,
+    // Product images come from arbitrary external shop CDNs, so we allow any
+    // https host. We use plain <img> tags for product images, but this keeps
+    // next/image usable elsewhere if needed.
     remotePatterns: [
       {
         protocol: "https",

@@ -5,10 +5,12 @@ import { createClient } from "@/lib/supabase/server";
 import {
   SEARCH_MODEL,
   buildSystemPrompt,
-  parseSearchResults,
+  extractJson,
+  normalizeProducts,
 } from "@/lib/search-prompt";
 import { BUDGET_MAX, BUDGET_MIN } from "@/lib/style-tags";
 
+// Web search + model reasoning can take a while; give it room.
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
@@ -30,7 +32,11 @@ export async function POST(request: Request) {
   }
 
   // 2. Parse the request body.
-  let body: { query?: unknown; budgetMax?: unknown; occasionFilter?: unknown };
+  let body: {
+    query?: unknown;
+    budgetMax?: unknown;
+    occasionFilter?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -44,15 +50,17 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
   const occasionFilter =
     typeof body.occasionFilter === "string" ? body.occasionFilter : null;
 
-  // 3. Load the caller's profile.
+  // 3. Load the caller's profile from the database (don't trust client copy).
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
     .eq("id", user.id)
     .maybeSingle();
+
   if (!profile) {
     return NextResponse.json(
       { error: "Complete your profile before searching." },
@@ -60,6 +68,7 @@ export async function POST(request: Request) {
     );
   }
 
+  // Budget: request override → profile default → sane fallback. Clamped.
   const requested = Number(body.budgetMax);
   const fallback = profile.budget_max_eur ?? 150;
   const budgetMax = Math.min(
@@ -68,60 +77,34 @@ export async function POST(request: Request) {
   );
 
   const systemPrompt = buildSystemPrompt({ profile, budgetMax, occasionFilter });
+
+  // 4. Call Anthropic with the web search tool enabled.
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
-  // 4. Haiku + at most 2 web searches. Output budget must leave room for the
-  //    JSON *after* the search/citation blocks (which also consume output
-  //    tokens), so 4000 — still only ~1-2ct of Haiku output per search.
+  let responseText = "";
   try {
-    const messages: Anthropic.MessageParam[] = [
-      {
-        role: "user",
-        content:
-          `Search for: "${query}". Run at most 2 web searches: "${query} kaufen" ` +
-          `and "${query} online shop". Return at least 20 real products from the ` +
-          `results as JSON only — no commentary.`,
-      },
-    ];
+    const message = await anthropic.messages.create({
+      model: SEARCH_MODEL,
+      max_tokens: 4096,
+      system: systemPrompt,
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 6,
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `Find clothing for this request: "${query}". Remember to return only the JSON object described in your instructions.`,
+        },
+      ],
+    });
 
-    let text = "";
-    let stopReason: string | null = null;
-
-    // Resume across web-search `pause_turn` boundaries (up to 3 hops).
-    for (let hop = 0; hop < 3; hop++) {
-      const message = await anthropic.messages.create({
-        model: SEARCH_MODEL,
-        max_tokens: 4000,
-        system: [
-          { type: "text", text: systemPrompt, cache_control: { type: "ephemeral" } },
-        ],
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
-        messages,
-      });
-
-      for (const block of message.content) {
-        if (block.type === "text") text += block.text;
-      }
-      stopReason = message.stop_reason;
-
-      if (message.stop_reason === "pause_turn") {
-        // Re-send with the assistant's partial turn so the server resumes.
-        messages.push({ role: "assistant", content: message.content });
-        continue;
-      }
-      break;
+    for (const block of message.content) {
+      if (block.type === "text") responseText += block.text;
     }
-
-    const results = parseSearchResults(text);
-    if (results.length === 0) {
-      // Surfaces in Vercel function logs to diagnose an empty result set.
-      console.error(
-        `[search] 0 products. stop_reason=${stopReason} textLen=${text.length} preview=${JSON.stringify(
-          text.slice(0, 400),
-        )}`,
-      );
-    }
-    return NextResponse.json({ results });
   } catch (err) {
     const detail =
       err instanceof Anthropic.APIError
@@ -131,8 +114,20 @@ export async function POST(request: Request) {
           : "Unknown error";
     console.error("Anthropic search error:", detail);
     return NextResponse.json(
-      { error: "The search couldn't complete. Please try again." },
+      { error: "The stylist couldn't complete the search. Please try again." },
       { status: 502 },
     );
   }
+
+  // 5. Parse and normalize the structured result.
+  const parsed = extractJson(responseText);
+  if (parsed === null) {
+    return NextResponse.json(
+      { error: "Couldn't read the search results. Please try again." },
+      { status: 502 },
+    );
+  }
+
+  const { results, search_summary } = normalizeProducts(parsed);
+  return NextResponse.json({ results, search_summary });
 }

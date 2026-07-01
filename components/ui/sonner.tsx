@@ -4,7 +4,7 @@ import { Toaster as Sonner } from "sonner";
 
 type ToasterProps = React.ComponentProps<typeof Sonner>;
 
-/** App-wide toaster, styled to the YAZ palette (no shadows, 8px radius). */
+/** App-wide toaster, styled to the DRIP palette (no shadows, 8px radius). */
 function Toaster(props: ToasterProps) {
   return (
     <Sonner

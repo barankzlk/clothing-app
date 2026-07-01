@@ -104,4 +104,10 @@ export type SearchProduct = {
   url: string;
   image_url: string | null;
   reason: string;
+  in_stock: boolean;
+};
+
+export type SearchResponse = {
+  results: SearchProduct[];
+  search_summary: string;
 };
