@@ -2,7 +2,7 @@ import type { Profile, SearchProduct } from "@/lib/types";
 import { humanizeTag } from "@/lib/utils";
 
 /** Default model for the stylist. Overridable via ANTHROPIC_MODEL env var. */
-export const SEARCH_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
+export const SEARCH_MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-4-5";
 
 const CURATED_SHOPS =
   "H&M (hm.com/de_de), Zara (zara.com/de), ASOS (asos.com/de, ships to Germany), " +
@@ -85,7 +85,7 @@ After researching, respond with ONLY a single JSON object (no markdown, no prose
   "search_summary": "Brief one-line summary of what was found"
 }
 
-Return at least 15 results if you can find them (search across all the listed shops to reach this), and at most 18. Every URL must be a real, direct product page you found via web search — never invent URLs. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
+Return at least 8 results if you can find them, and at most 10. Every URL must be a real, direct product page you found via web search — never invent URLs. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
 }
 
 /** Extract a JSON object from arbitrary model text. */
@@ -113,7 +113,7 @@ export function extractJson(text: string): unknown | null {
   return null;
 }
 
-/** Coerce parsed JSON into a clean, validated product list (max 18). */
+/** Coerce parsed JSON into a clean, validated product list (max 10). */
 export function normalizeProducts(parsed: unknown): {
   results: SearchProduct[];
   search_summary: string;
@@ -144,7 +144,7 @@ export function normalizeProducts(parsed: unknown): {
       reason: typeof r.reason === "string" ? r.reason.trim() : "",
       in_stock: r.in_stock === false ? false : true,
     });
-    if (results.length >= 18) break;
+    if (results.length >= 10) break;
   }
 
   return { results, search_summary: summary };
