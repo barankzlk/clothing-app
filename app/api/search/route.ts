@@ -181,6 +181,8 @@ export async function POST(request: Request) {
     const messages: Anthropic.MessageParam[] = [{ role: "user", content: userMessage }];
     let text = "";
     let stopReason: string | null = null;
+    let searchCount = 0;
+    const searchErrors: string[] = [];
 
     // Resume across web-search `pause_turn` boundaries (up to 3 hops).
     for (let hop = 0; hop < 3; hop++) {
@@ -193,6 +195,18 @@ export async function POST(request: Request) {
       });
       for (const block of message.content) {
         if (block.type === "text") text += block.text;
+        if (block.type === "server_tool_use" && block.name === "web_search") {
+          searchCount++;
+        }
+        if (block.type === "web_search_tool_result") {
+          const content = block.content as unknown;
+          // A search error comes back as a single object (not an array) with
+          // an error_code, per the API's server-tool-error shape.
+          if (content && !Array.isArray(content) && typeof content === "object") {
+            const err = content as { error_code?: string };
+            if (err.error_code) searchErrors.push(err.error_code);
+          }
+        }
       }
       stopReason = message.stop_reason;
       if (message.stop_reason === "pause_turn") {
@@ -204,11 +218,18 @@ export async function POST(request: Request) {
 
     const { results, summary } = parseSearchResponse(text);
     if (results.length === 0) {
-      // Surfaces in Vercel function logs to diagnose an empty result set.
-      console.error(
-        `[search] 0 products. stop_reason=${stopReason} textLen=${text.length} ` +
-          `preview=${JSON.stringify(text.slice(0, 300))}`,
-      );
+      const debug = {
+        stopReason,
+        searchCount,
+        searchErrors,
+        textLen: text.length,
+        textPreview: text.slice(0, 600),
+      };
+      // Surfaces in Vercel function logs.
+      console.error(`[search] 0 products. ${JSON.stringify(debug)}`);
+      // Also hand it back to the client so it's visible in the browser
+      // console without needing to open the Vercel dashboard.
+      return NextResponse.json({ results, summary, debug });
     }
     return NextResponse.json({ results, summary });
   } catch (err) {

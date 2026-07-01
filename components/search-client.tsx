@@ -109,6 +109,13 @@ export function SearchClient({
       setResults(data.results ?? []);
       if ((data.results ?? []).length === 0) {
         toast.message(t("search.noMatchesToast"));
+        if (data.debug) {
+          // Open the browser console to see exactly why: stop reason, how
+          // many web searches actually ran, any search errors, and a
+          // preview of what the model wrote.
+          // eslint-disable-next-line no-console
+          console.error("[search debug]", data.debug);
+        }
       }
     } catch {
       toast.error(t("search.networkError"));
