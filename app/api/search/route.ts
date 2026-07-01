@@ -11,7 +11,13 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 const MODEL = "claude-haiku-4-5-20251001";
-const MAX_TOKENS = 1500;
+// 20 products at ~7 fields each (incl. two real URLs) runs ~2000+ tokens on
+// its own, before any web-search overhead — 1500 truncated the JSON almost
+// every time. This ceiling only caps spend on a response that would otherwise
+// run away; billing is per token actually generated, not the ceiling, so this
+// isn't a bigger bill on a normal search — it's the difference between a
+// truncated dead end and a complete one.
+const MAX_TOKENS = 4000;
 const MAX_RESULTS = 24;
 
 const SYSTEM_PROMPT =
@@ -166,7 +172,8 @@ export async function POST(request: Request) {
     `Find ${query}, size ${sizes}, budget €${budgetMax}, filters: ${filters}. Germany shipping required.\n\n` +
     `Run these 2 web searches:\n` +
     `1. "${query} site:asos.com OR site:hm.com OR site:zara.com OR site:mango.com OR site:cos.com"\n` +
-    `2. "${query} site:ohpolly.com OR site:meshki.com OR site:massimodutti.com OR site:sezane.com OR site:clubllondon.com OR site:houseofcb.com"`;
+    `2. "${query} site:ohpolly.com OR site:meshki.com OR site:massimodutti.com OR site:sezane.com OR site:clubllondon.com OR site:houseofcb.com"\n\n` +
+    `Output compact JSON with no extra whitespace or line breaks so more products fit in the response.`;
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
