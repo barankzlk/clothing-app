@@ -16,12 +16,23 @@ and **Supabase** (Postgres + Auth).
   list (H&M, Zara, ASOS, Oh Polly, Club L London, Massimo Dutti, Mango,
   Meshki, COS, House of CB, Sézane, Toteme, Loulou de Saison, Uniqlo) — no AI
   call, no stock guessing, zero per-search cost
-- Search-page filters (aesthetic, occasion, fabric & fit, materials, colors) —
-  per-search only, never saved to the profile
+- Search-page filters — gender-based aesthetic/occasion/fabric & fit tag sets
+  (female and male profiles each see their own list; non-binary/unspecified
+  gets the combined set) plus a universal colors filter. Per-search only,
+  never saved to the profile.
 - Filter-driven idea suggestions ("what about a half-zip pullover?") via a
-  small, cheap Claude text completion — the only AI call left in the app
+  small, cheap Claude text completion, written in the active UI language —
+  the only AI call left in the app
+- Recent searches: every search is saved (query + active filters) and shown
+  as the last 8 clickable chips below the suggestions, with per-item and
+  clear-all delete
+- DE/PT language toggle (persisted in `localStorage`) covering all UI text,
+  with English as the automatic fallback for anything untranslated
+- Persistent nav — sidebar on desktop, bottom bar on mobile — for
+  Search/Favorites/Profile
 - Save/remove favorites, sortable favorites page
-- Editorial, minimal design system (muted sage accent, no shadows, 8px radius)
+- Warm bento design system: eggshell background, caramel accent, 16px card
+  radius, hover-lift cards
 
 ## Getting started
 
@@ -49,16 +60,17 @@ cp .env.example .env.local
 ### 3. Set up the database
 
 Run the SQL in [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql)
-against your Supabase project — either paste it into the **SQL Editor**, or with the
-Supabase CLI:
+and [`supabase/migrations/0002_saved_searches.sql`](supabase/migrations/0002_saved_searches.sql)
+against your Supabase project, in order — either paste them into the **SQL Editor**,
+or with the Supabase CLI:
 
 ```bash
 supabase db push
 ```
 
-This creates the `profiles` and `favorites` tables, enables Row Level Security
-(users can only read/write their own rows), and adds a trigger that auto-creates a
-profile row on signup.
+This creates the `profiles`, `favorites`, and `saved_searches` tables, enables Row
+Level Security (users can only read/write their own rows), and adds a trigger that
+auto-creates a profile row on signup.
 
 > **Auth note:** for the smoothest local experience, disable "Confirm email" in
 > Supabase → Authentication → Providers → Email. With it on, new users must confirm
@@ -86,16 +98,19 @@ then to `/search`.
 app/
   auth/            Sign in / create account (+ /auth/callback)
   onboarding/      3-step profile wizard
-  search/          Main search page (sidebar filters + shop search-link grid)
+  search/          Main search page (bento grid: search, filters, results)
   favorites/       Saved items
   profile/         Edit profile
   api/suggestions/ Filter-driven idea suggestions (Anthropic, no tools)
 components/        UI + feature components (components/ui = shadcn)
+  app-nav.tsx      Desktop sidebar nav
+  mobile-nav.tsx   Mobile bottom bar nav
 lib/
   supabase/            Browser, server, and middleware clients
   types.ts             Hand-written DB types (mirror the migration)
-  style-tags.ts        Sizes, body shapes, budget, search filter tags
+  style-tags.ts        Sizes, body shapes, budget, gender-based filter tags
   shops.ts             Shop list + per-shop search-URL builders
   suggestion-prompt.ts System prompt builder + response parsing
+  i18n/                Translation dictionaries, locale context, tag labels
 supabase/migrations/  SQL schema
 ```

@@ -183,7 +183,7 @@ function Field({
         autoComplete={autoComplete}
         required
       />
-      {hint && <p className="text-xs font-light text-muted-foreground">{hint}</p>}
+      {hint && <p className="text-xs font-normal text-muted-foreground">{hint}</p>}
     </div>
   );
 }

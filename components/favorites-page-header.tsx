@@ -13,7 +13,7 @@ export function FavoritesPageHeader() {
     <div className="mb-6 flex items-center justify-between">
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">{t("favoritesPage.heading")}</h1>
-        <p className="text-sm font-light text-muted-foreground">
+        <p className="text-sm font-normal text-muted-foreground">
           {t("favoritesPage.subtitle")}
         </p>
       </div>

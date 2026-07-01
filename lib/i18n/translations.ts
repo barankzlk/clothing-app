@@ -6,6 +6,9 @@
  */
 export const en = {
   nav: {
+    search: "Search",
+    favorites: "Favorites",
+    profile: "Profile",
     editProfile: "Edit profile",
     myFavorites: "My favorites",
     signOut: "Sign out",
@@ -119,7 +122,11 @@ export const en = {
     bottom: "Bottom {size}",
     shoe: "Shoe EU {size}",
     budget: "Budget €{amount}",
+    budgetLabel: "Budget per item",
     emptyQuery: "Type something to search for.",
+    recentSearches: "Recent Searches",
+    clearHistory: "Clear history",
+    removeSearchAria: "Remove this search",
   },
   shopCard: {
     resultsFor: "See results for “{query}”",
@@ -154,6 +161,9 @@ export type Dict = typeof en;
 
 export const de: Dict = {
   nav: {
+    search: "Suche",
+    favorites: "Favoriten",
+    profile: "Profil",
     editProfile: "Profil bearbeiten",
     myFavorites: "Meine Favoriten",
     signOut: "Abmelden",
@@ -268,7 +278,11 @@ export const de: Dict = {
     bottom: "Hose {size}",
     shoe: "Schuh EU {size}",
     budget: "Budget €{amount}",
+    budgetLabel: "Budget pro Teil",
     emptyQuery: "Gib etwas ein, wonach du suchen möchtest.",
+    recentSearches: "Letzte Suchen",
+    clearHistory: "Verlauf löschen",
+    removeSearchAria: "Diese Suche entfernen",
   },
   shopCard: {
     resultsFor: "Ergebnisse für „{query}“ ansehen",
@@ -301,6 +315,9 @@ export const de: Dict = {
 
 export const pt: Dict = {
   nav: {
+    search: "Buscar",
+    favorites: "Favoritos",
+    profile: "Perfil",
     editProfile: "Editar perfil",
     myFavorites: "Meus favoritos",
     signOut: "Sair",
@@ -415,7 +432,11 @@ export const pt: Dict = {
     bottom: "Baixo {size}",
     shoe: "Calçado EU {size}",
     budget: "Orçamento €{amount}",
+    budgetLabel: "Orçamento por peça",
     emptyQuery: "Digite algo para buscar.",
+    recentSearches: "Buscas Recentes",
+    clearHistory: "Limpar histórico",
+    removeSearchAria: "Remover esta busca",
   },
   shopCard: {
     resultsFor: "Ver resultados para “{query}”",

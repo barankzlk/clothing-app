@@ -6,6 +6,14 @@ import { PillMultiSelect } from "@/components/profile-fields";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { tagLabel } from "@/lib/i18n/tag-labels";
 
+/** Category color per filter group, per the bento redesign spec. */
+const GROUP_COLOR: Record<string, string> = {
+  groupAesthetic: "#C4956A", // caramel
+  groupOccasion: "#8B6F47", // brown
+  groupFabricFit: "#2C1A0E", // dark brown
+  groupColors: "#C4956A", // caramel (not specified — reuses aesthetic's tone)
+};
+
 export function SearchFilters({
   gender,
   selected,
@@ -30,6 +38,7 @@ export function SearchFilters({
             value={selected}
             onToggle={onToggle}
             labelFor={(tag) => tagLabel(tag, locale)}
+            color={GROUP_COLOR[group.key]}
           />
         </div>
       ))}

@@ -13,7 +13,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         onClick={() => setLocale("de")}
         aria-pressed={locale === "de"}
         className={cn(
-          "rounded px-1.5 py-1 font-light transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "rounded px-1.5 py-1 font-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           locale === "de"
             ? "text-ink"
             : "text-muted-foreground hover:text-ink",
@@ -29,7 +29,7 @@ export function LanguageSwitcher({ className }: { className?: string }) {
         onClick={() => setLocale("pt")}
         aria-pressed={locale === "pt"}
         className={cn(
-          "rounded px-1.5 py-1 font-light transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+          "rounded px-1.5 py-1 font-normal transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
           locale === "pt"
             ? "text-ink"
             : "text-muted-foreground hover:text-ink",

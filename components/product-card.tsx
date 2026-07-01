@@ -44,23 +44,23 @@ export function ProductCard({
         ) : (
           <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <ImageOff className="size-6" />
-            <span className="text-xs font-light">{t("productCard.noPreview")}</span>
+            <span className="text-xs font-normal">{t("productCard.noPreview")}</span>
           </div>
         )}
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+        <span className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">
           {product.shop}
         </span>
         <h3 className="text-sm font-medium leading-snug text-ink">
           {product.title}
         </h3>
         {product.price && (
-          <p className="text-base font-semibold text-ink">{product.price}</p>
+          <p className="text-base font-semibold text-sage">{product.price}</p>
         )}
         {product.reason && (
-          <p className="text-sm font-light italic text-muted-foreground">
+          <p className="text-sm font-normal italic text-muted-foreground">
             {product.reason}
           </p>
         )}

@@ -47,7 +47,7 @@ function Section({
         <div className="space-y-1">
           <h2 className="text-base font-semibold">{title}</h2>
           {description && (
-            <p className="text-sm font-light text-muted-foreground">
+            <p className="text-sm font-normal text-muted-foreground">
               {description}
             </p>
           )}
@@ -97,7 +97,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
 
   return (
     <div className="space-y-6">
-      <p className="text-xs font-light text-muted-foreground">
+      <p className="text-xs font-normal text-muted-foreground">
         {t("profileForm.lastUpdated", { time: timeAgo(updatedAt, t) })}
       </p>
 
@@ -203,7 +203,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
 
       <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-line bg-canvas/90 px-1 py-4 backdrop-blur">
         {dirty && (
-          <span className="text-xs font-light text-muted-foreground">
+          <span className="text-xs font-normal text-muted-foreground">
             {t("profileForm.unsavedChanges")}
           </span>
         )}

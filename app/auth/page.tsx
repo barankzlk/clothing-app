@@ -18,7 +18,7 @@ export default function AuthPage() {
 
         <div className="space-y-3 text-center">
           <Brand href="/auth" className="justify-center" />
-          <p className="text-sm font-light text-muted-foreground">
+          <p className="text-sm font-normal text-muted-foreground">
             {t("auth.tagline")}
           </p>
         </div>
@@ -27,7 +27,7 @@ export default function AuthPage() {
           <AuthForm />
         </Card>
 
-        <p className="text-center text-xs font-light text-muted-foreground">
+        <p className="text-center text-xs font-normal text-muted-foreground">
           {t("auth.disclaimer")}
         </p>
       </div>

@@ -140,7 +140,7 @@ export function OnboardingWizard({
 
       <div className="space-y-1">
         <h1 className="text-2xl font-semibold">{STEPS[step]!.title}</h1>
-        <p className="text-sm font-light text-muted-foreground">
+        <p className="text-sm font-normal text-muted-foreground">
           {STEPS[step]!.subtitle}
         </p>
       </div>
@@ -245,7 +245,7 @@ export function OnboardingWizard({
                 value={[draft.budget_max_eur]}
                 onValueChange={([v]) => patch({ budget_max_eur: v ?? BUDGET_MIN })}
               />
-              <div className="flex justify-between text-xs font-light text-muted-foreground">
+              <div className="flex justify-between text-xs font-normal text-muted-foreground">
                 <span>€{BUDGET_MIN}</span>
                 <span>€{BUDGET_MAX}</span>
               </div>

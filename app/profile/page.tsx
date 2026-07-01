@@ -6,6 +6,8 @@ import { ProfileForm } from "@/components/profile-form";
 import { ProfilePageHeader } from "@/components/profile-page-header";
 import { SignOutButton } from "@/components/sign-out-button";
 import { LanguageSwitcher } from "@/components/language-switcher";
+import { AppNav } from "@/components/app-nav";
+import { MobileNav } from "@/components/mobile-nav";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -24,7 +26,7 @@ export default async function ProfilePage() {
   if (!profile || !profile.onboarding_complete) redirect("/onboarding");
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-2xl px-6 py-8">
+    <main className="mx-auto min-h-screen w-full max-w-5xl px-6 pb-24 pt-8 lg:pb-8">
       <header className="mb-8 flex items-center justify-between">
         <Brand />
         <div className="flex items-center gap-3">
@@ -33,9 +35,14 @@ export default async function ProfilePage() {
         </div>
       </header>
 
-      <ProfilePageHeader />
-
-      <ProfileForm profile={profile} />
+      <div className="flex gap-8">
+        <AppNav className="w-[200px] shrink-0" />
+        <div className="min-w-0 max-w-2xl flex-1">
+          <ProfilePageHeader />
+          <ProfileForm profile={profile} />
+        </div>
+      </div>
+      <MobileNav />
     </main>
   );
 }

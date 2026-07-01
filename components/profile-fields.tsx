@@ -1,7 +1,8 @@
 "use client";
 
+import { Check } from "lucide-react";
+
 import { cn, humanizeTag } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -75,20 +76,27 @@ export function draftToProfilePayload(d: ProfileDraft): Partial<ProfileRow> {
 
 /* ----------------------------- field widgets ----------------------------- */
 
-/** A multi-select grid of pill/badge toggles. */
+/**
+ * A multi-select grid of checkbox-square toggles, colored per category
+ * (e.g. caramel for Aesthetic, brown for Occasion, dark brown for Fabric &
+ * Fit). Selected options fill solid with a checkmark; unselected ones are
+ * just an outline in the category color.
+ */
 export function PillMultiSelect({
   options,
   value,
   onToggle,
   labelFor = humanizeTag,
+  color = "#C4956A",
 }: {
   options: readonly string[];
   value: string[];
   onToggle: (tag: string) => void;
   labelFor?: (tag: string) => string;
+  color?: string;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
       {options.map((option) => {
         const active = value.includes(option);
         return (
@@ -97,17 +105,26 @@ export function PillMultiSelect({
             type="button"
             aria-pressed={active}
             onClick={() => onToggle(option)}
-            className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+            className="flex items-center gap-2 rounded-md px-1 py-1.5 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           >
-            <Badge
-              variant={active ? "solid" : "outline"}
-              className={cn(
-                "cursor-pointer px-3 py-1 text-sm font-light transition-colors",
-                active ? "" : "hover:border-ink",
-              )}
+            <span
+              aria-hidden
+              className="flex size-4 shrink-0 items-center justify-center rounded-[4px] border-2 transition-colors"
+              style={{
+                borderColor: color,
+                backgroundColor: active ? color : "transparent",
+              }}
             >
+              {active && (
+                <Check
+                  className="size-3 text-[#FDFAF4]"
+                  strokeWidth={3}
+                />
+              )}
+            </span>
+            <span className={cn("text-sm font-normal text-ink", active && "font-medium")}>
               {labelFor(option)}
-            </Badge>
+            </span>
           </button>
         );
       })}
@@ -145,7 +162,7 @@ export function BodyShapeSelector({
             <span className="text-2xl leading-none" aria-hidden>
               {shape.glyph}
             </span>
-            <span className="text-xs font-light text-muted-foreground">
+            <span className="text-xs font-normal text-muted-foreground">
               {labelFor(shape)}
             </span>
           </button>
@@ -215,7 +232,7 @@ export function NumberField({
           className={cn("no-spinner", unit && "pr-12")}
         />
         {unit && (
-          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-light text-muted-foreground">
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-normal text-muted-foreground">
             {unit}
           </span>
         )}

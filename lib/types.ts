@@ -20,6 +20,12 @@ export type Database = {
         Update: Partial<FavoriteInsert>;
         Relationships: [];
       };
+      saved_searches: {
+        Row: SavedSearch;
+        Insert: SavedSearchInsert;
+        Update: Partial<SavedSearchInsert>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
@@ -93,5 +99,21 @@ export type FavoriteInsert = {
   image_url?: string | null;
   reason?: string | null;
   search_query?: string | null;
+  created_at?: string;
+};
+
+export type SavedSearch = {
+  id: string;
+  user_id: string;
+  query: string;
+  active_filters: string[];
+  created_at: string;
+};
+
+export type SavedSearchInsert = {
+  id?: string;
+  user_id: string;
+  query: string;
+  active_filters?: string[];
   created_at?: string;
 };

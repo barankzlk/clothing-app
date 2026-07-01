@@ -4,37 +4,37 @@
 
 @layer base {
   :root {
-    /* DRIP editorial palette mapped to shadcn semantic tokens.
+    /* DRIP warm bento palette mapped to shadcn semantic tokens.
        Values are HSL channels (no hsl() wrapper) per shadcn convention. */
-    --background: 60 11% 98%; /* #FAFAF9 canvas */
-    --foreground: 0 0% 10%; /* #1A1A1A ink */
+    --background: 37 39% 94%; /* #F5F0E8 warm eggshell */
+    --foreground: 24 52% 11%; /* #2C1A0E dark brown */
 
-    --card: 0 0% 100%; /* white cards */
-    --card-foreground: 0 0% 10%;
+    --card: 40 69% 97%; /* #FDFAF4 off-white */
+    --card-foreground: 24 52% 11%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
+    --popover: 40 69% 97%;
+    --popover-foreground: 24 52% 11%;
 
-    --primary: 0 0% 10%; /* solid dark buttons */
-    --primary-foreground: 60 11% 98%;
+    --primary: 24 52% 11%; /* solid dark brown buttons */
+    --primary-foreground: 40 69% 97%;
 
-    --secondary: 60 5% 96%;
-    --secondary-foreground: 0 0% 10%;
+    --secondary: 40 44% 89%; /* #F0E8D8 light beige surfaces */
+    --secondary-foreground: 24 52% 11%;
 
-    --muted: 60 5% 96%;
-    --muted-foreground: 0 0% 54%; /* #8A8A8A muted gray */
+    --muted: 40 44% 89%;
+    --muted-foreground: 35 32% 41%; /* #8B6F47 medium brown */
 
-    --accent: 131 8% 94%; /* faint sage tint for hovers */
-    --accent-foreground: 0 0% 10%;
+    --accent: 29 43% 90%; /* faint caramel tint for hovers */
+    --accent-foreground: 24 52% 11%;
 
     --destructive: 0 55% 45%;
-    --destructive-foreground: 60 11% 98%;
+    --destructive-foreground: 40 69% 97%;
 
-    --border: 0 0% 90%; /* #E5E5E5 */
-    --input: 0 0% 90%;
-    --ring: 131 7% 45%; /* #6B7C6E sage focus ring */
+    --border: 38 41% 85%; /* #E8DCC8 */
+    --input: 38 41% 85%;
+    --ring: 29 43% 59%; /* #C4956A caramel focus ring */
 
-    --radius: 0.5rem; /* 8px — capped per spec */
+    --radius: 1rem; /* 16px bento cards */
   }
 }
 
@@ -43,7 +43,7 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground font-light antialiased;
+    @apply bg-background text-foreground font-normal antialiased;
     font-feature-settings:
       "rlig" 1,
       "calt" 1;

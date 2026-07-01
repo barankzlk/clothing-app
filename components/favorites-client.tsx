@@ -65,7 +65,7 @@ export function FavoritesClient({ initial }: { initial: Favorite[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <p className="text-sm font-light text-muted-foreground">
+        <p className="text-sm font-normal text-muted-foreground">
           {t(
             items.length === 1
               ? "favoritesClient.count"
@@ -122,7 +122,7 @@ function EmptyState() {
       </div>
       <div className="space-y-1">
         <h2 className="text-lg font-semibold">{t("favoritesClient.emptyTitle")}</h2>
-        <p className="text-sm font-light text-muted-foreground">
+        <p className="text-sm font-normal text-muted-foreground">
           {t("favoritesClient.emptyBody")}
         </p>
       </div>

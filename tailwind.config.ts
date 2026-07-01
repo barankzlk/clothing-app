@@ -18,14 +18,14 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // DRIP editorial palette — calm, muted, premium.
-        canvas: "#FAFAF9", // near-white background
-        ink: "#1A1A1A", // dark text
+        // DRIP warm bento palette — eggshell background, caramel accent.
+        canvas: "#F5F0E8", // warm eggshell background
+        ink: "#2C1A0E", // dark brown primary text
         sage: {
-          DEFAULT: "#6B7C6E", // single muted sage-green accent
-          foreground: "#FAFAF9",
+          DEFAULT: "#C4956A", // warm caramel accent (name kept for compatibility)
+          foreground: "#FDFAF4",
         },
-        line: "#E5E5E5", // 1px borders
+        line: "#E8DCC8", // light beige borders
         // shadcn semantic tokens mapped onto the palette via CSS variables.
         // `muted-foreground` carries the #8A8A8A gray accent from the spec.
         muted: {
@@ -63,8 +63,8 @@ const config: Config = {
         },
       },
       borderRadius: {
-        // Cap radius at 8px per the design spec (no rounded corners above 8px).
-        lg: "8px",
+        // Bento cards use 16px radius per the redesign spec.
+        lg: "16px",
         md: "6px",
         sm: "4px",
       },
@@ -72,7 +72,7 @@ const config: Config = {
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],
       },
       fontWeight: {
-        light: "300",
+        normal: "400",
         medium: "500",
         semibold: "600",
       },

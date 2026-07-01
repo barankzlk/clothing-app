@@ -6,7 +6,7 @@ import { LocaleProvider } from "@/lib/i18n/locale-context";
 
 const inter = Inter({
   subsets: ["latin"],
-  weight: ["300", "500", "600"],
+  weight: ["400", "500", "600"],
   variable: "--font-inter",
   display: "swap",
 });

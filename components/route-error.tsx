@@ -21,7 +21,7 @@ export function RouteError({
   return (
     <div className="mx-auto flex min-h-[60vh] max-w-md flex-col items-center justify-center gap-4 px-6 text-center">
       <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="text-sm font-light text-muted-foreground">
+      <p className="text-sm font-normal text-muted-foreground">
         {error.message || "An unexpected error occurred. Please try again."}
       </p>
       <Button onClick={reset} variant="outline">
