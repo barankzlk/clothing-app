@@ -1,7 +1,6 @@
 "use client";
 
-import { cn, humanizeTag } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import {
@@ -17,6 +16,9 @@ import type { Profile as ProfileRow } from "@/lib/types";
 /**
  * The editable subset of a profile, held as form state. Numeric fields are
  * kept as strings while editing (empty string = unset) and converted on save.
+ * Style tags, fabric preferences, and style notes live on the search page's
+ * per-search filters instead — the profile only keeps the fields needed to
+ * size and budget every search.
  */
 export type ProfileDraft = {
   name: string;
@@ -28,10 +30,7 @@ export type ProfileDraft = {
   clothing_size_top: string;
   clothing_size_bottom: string;
   shoe_size_eu: string;
-  style_tags: string[];
-  fabric_preferences: string[];
   budget_max_eur: number;
-  style_notes: string;
 };
 
 const numToStr = (n: number | null | undefined) =>
@@ -49,10 +48,7 @@ export function draftFromProfile(p: Partial<ProfileRow> | null): ProfileDraft {
     clothing_size_top: p?.clothing_size_top ?? "",
     clothing_size_bottom: p?.clothing_size_bottom ?? "",
     shoe_size_eu: numToStr(p?.shoe_size_eu),
-    style_tags: p?.style_tags ?? [],
-    fabric_preferences: p?.fabric_preferences ?? [],
     budget_max_eur: p?.budget_max_eur ?? 150,
-    style_notes: p?.style_notes ?? "",
   };
 }
 
@@ -75,60 +71,22 @@ export function draftToProfilePayload(d: ProfileDraft): Partial<ProfileRow> {
     clothing_size_top: d.clothing_size_top || null,
     clothing_size_bottom: d.clothing_size_bottom || null,
     shoe_size_eu: strToNum(d.shoe_size_eu),
-    style_tags: d.style_tags,
-    fabric_preferences: d.fabric_preferences,
     budget_max_eur: d.budget_max_eur,
-    style_notes: d.style_notes.trim() || null,
   };
 }
 
 /* ----------------------------- field widgets ----------------------------- */
 
-/** A multi-select grid of pill/badge toggles. */
-export function PillMultiSelect({
-  options,
-  value,
-  onToggle,
-}: {
-  options: readonly string[];
-  value: string[];
-  onToggle: (tag: string) => void;
-}) {
-  return (
-    <div className="flex flex-wrap gap-2">
-      {options.map((option) => {
-        const active = value.includes(option);
-        return (
-          <button
-            key={option}
-            type="button"
-            aria-pressed={active}
-            onClick={() => onToggle(option)}
-            className="rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          >
-            <Badge
-              variant={active ? "solid" : "outline"}
-              className={cn(
-                "cursor-pointer px-3 py-1 text-sm font-light transition-colors",
-                active ? "" : "hover:border-ink",
-              )}
-            >
-              {humanizeTag(option)}
-            </Badge>
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Visual selector for body shape using simple glyphs. */
+/** Visual selector for body shape using simple glyphs. Labels are supplied
+ * by the caller so this stays locale-agnostic. */
 export function BodyShapeSelector({
   value,
   onChange,
+  getLabel,
 }: {
   value: string;
   onChange: (v: string) => void;
+  getLabel: (value: string) => string;
 }) {
   return (
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
@@ -141,7 +99,7 @@ export function BodyShapeSelector({
             aria-pressed={active}
             onClick={() => onChange(shape.value)}
             className={cn(
-              "flex flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              "flex min-h-11 flex-col items-center gap-1.5 rounded-lg border p-3 text-center transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               active
                 ? "border-ink bg-accent"
                 : "border-line bg-card hover:border-ink",
@@ -151,7 +109,7 @@ export function BodyShapeSelector({
               {shape.glyph}
             </span>
             <span className="text-xs font-light text-muted-foreground">
-              {shape.label}
+              {getLabel(shape.value)}
             </span>
           </button>
         );
@@ -178,7 +136,7 @@ export function SelectField({
     <div className="space-y-2">
       <Label>{label}</Label>
       <Select value={value || undefined} onValueChange={onChange}>
-        <SelectTrigger>
+        <SelectTrigger className="min-h-11">
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
@@ -217,7 +175,7 @@ export function NumberField({
           value={value}
           placeholder={placeholder}
           onChange={(e) => onChange(e.target.value)}
-          className={cn("no-spinner", unit && "pr-12")}
+          className={cn("no-spinner min-h-11", unit && "pr-12")}
         />
         {unit && (
           <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-light text-muted-foreground">

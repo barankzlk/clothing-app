@@ -1,32 +1,32 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
+import { useLocale } from "@/lib/i18n/locale-context";
 import {
   BOTTOM_SIZES,
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
-  FABRIC_PREFERENCES,
   GENDERS,
-  STYLE_TAG_GROUPS,
   TOP_SIZES,
 } from "@/lib/style-tags";
 import type { Profile } from "@/lib/types";
-import { timeAgo } from "@/lib/utils";
+import { formatTimeAgo } from "@/lib/time";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import { Card, CardContent } from "@/components/ui/card";
+import { SignOutButton } from "@/components/sign-out-button";
 import {
   BodyShapeSelector,
   NumberField,
-  PillMultiSelect,
   SelectField,
   draftFromProfile,
   draftToProfilePayload,
@@ -61,6 +61,7 @@ function Section({
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const router = useRouter();
+  const { t } = useLocale();
   const [saving, setSaving] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(profile.updated_at);
   const initial = useMemo(() => draftFromProfile(profile), [profile]);
@@ -75,23 +76,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     setDraft((d) => ({ ...d, ...partial }));
   }
 
-  function toggleInList(key: "style_tags" | "fabric_preferences", tag: string) {
-    setDraft((d) => {
-      const list = d[key];
-      return {
-        ...d,
-        [key]: list.includes(tag)
-          ? list.filter((t) => t !== tag)
-          : [...list, tag],
-      };
-    });
-  }
-
   async function save() {
-    if (draft.style_tags.length < 3) {
-      toast.error("Keep at least 3 style tags so search stays useful.");
-      return;
-    }
     setSaving(true);
     const supabase = createClient();
     const { data, error } = await supabase
@@ -107,121 +92,111 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       return;
     }
     if (data?.updated_at) setUpdatedAt(data.updated_at);
-    toast.success("Profile saved.");
+    toast.success(t("profile.saved"));
     router.refresh();
   }
 
   return (
     <div className="space-y-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-semibold">{t("profile.title")}</h1>
+          <p className="text-sm font-light text-muted-foreground">
+            {t("profile.subtitle")}
+          </p>
+        </div>
+        <Button variant="outline" size="sm" asChild className="min-h-11">
+          <Link href="/search">
+            <ArrowLeft className="size-4" /> {t("common.search")}
+          </Link>
+        </Button>
+      </div>
+
       <p className="text-xs font-light text-muted-foreground">
-        Profile last updated: {timeAgo(updatedAt)}
+        {t("profile.lastUpdated", { time: formatTimeAgo(updatedAt, t) })}
       </p>
 
-      <Section title="About you">
+      <Section title={t("profile.sectionAbout")}>
         <div className="space-y-2">
-          <Label htmlFor="p-name">Name</Label>
+          <Label htmlFor="p-name">{t("onboarding.nameLabel")}</Label>
           <Input
             id="p-name"
             value={draft.name}
             onChange={(e) => patch({ name: e.target.value })}
-            placeholder="Your name"
+            placeholder={t("onboarding.namePlaceholder")}
+            className="min-h-11"
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <SelectField
-            label="Gender"
-            placeholder="Select…"
+            label={t("onboarding.genderLabel")}
+            placeholder={t("common.select")}
             value={draft.gender}
             onChange={(v) => patch({ gender: v })}
-            options={GENDERS}
+            options={GENDERS.map((g) => ({ value: g, label: t(`genders.${g}`) }))}
           />
           <NumberField
-            label="Age"
+            label={t("onboarding.ageLabel")}
             value={draft.age}
             onChange={(v) => patch({ age: v })}
-            unit="yrs"
+            unit={t("common.years")}
           />
         </div>
       </Section>
 
       <Section
-        title="Measurements"
-        description="Used to keep results in your size."
+        title={t("profile.sectionMeasurements")}
+        description={t("profile.sectionMeasurementsDesc")}
       >
         <div className="grid grid-cols-2 gap-4">
           <NumberField
-            label="Height"
+            label={t("onboarding.heightLabel")}
             value={draft.height_cm}
             onChange={(v) => patch({ height_cm: v })}
             unit="cm"
           />
           <NumberField
-            label="Weight"
+            label={t("onboarding.weightLabel")}
             value={draft.weight_kg}
             onChange={(v) => patch({ weight_kg: v })}
             unit="kg"
           />
         </div>
         <div className="space-y-2">
-          <Label>Body shape</Label>
+          <Label>{t("onboarding.bodyShapeLabel")}</Label>
           <BodyShapeSelector
             value={draft.body_shape}
             onChange={(v) => patch({ body_shape: v })}
+            getLabel={(v) => t(`bodyShapes.${v}`)}
           />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <SelectField
-            label="Top size"
+            label={t("onboarding.topSizeLabel")}
             placeholder="—"
             value={draft.clothing_size_top}
             onChange={(v) => patch({ clothing_size_top: v })}
             options={TOP_SIZES.map((s) => ({ value: s, label: s }))}
           />
           <SelectField
-            label="Bottom (EU)"
+            label={t("onboarding.bottomSizeLabel")}
             placeholder="—"
             value={draft.clothing_size_bottom}
             onChange={(v) => patch({ clothing_size_bottom: v })}
             options={BOTTOM_SIZES.map((s) => ({ value: s, label: s }))}
           />
           <NumberField
-            label="Shoe (EU)"
+            label={t("onboarding.shoeSizeLabel")}
             value={draft.shoe_size_eu}
             onChange={(v) => patch({ shoe_size_eu: v })}
           />
         </div>
       </Section>
 
-      <Section
-        title="Your style"
-        description="Pick the aesthetics, vibes, and fits that suit you (min. 3)."
-      >
-        <div className="space-y-5">
-          {STYLE_TAG_GROUPS.map((group) => (
-            <div key={group.label} className="space-y-3">
-              <Label className="text-muted-foreground">{group.label}</Label>
-              <PillMultiSelect
-                options={group.tags}
-                value={draft.style_tags}
-                onToggle={(t) => toggleInList("style_tags", t)}
-              />
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Preferences">
-        <div className="space-y-3">
-          <Label>Fabric preferences</Label>
-          <PillMultiSelect
-            options={FABRIC_PREFERENCES}
-            value={draft.fabric_preferences}
-            onToggle={(t) => toggleInList("fabric_preferences", t)}
-          />
-        </div>
+      <Section title={t("profile.sectionBudget")}>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label>Default budget per item</Label>
+            <Label>{t("onboarding.budgetLabel")}</Label>
             <span className="text-sm font-medium">
               €{draft.budget_max_eur}
             </span>
@@ -234,28 +209,22 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             onValueChange={([v]) => patch({ budget_max_eur: v ?? BUDGET_MIN })}
           />
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="p-notes">Anything else about your style?</Label>
-          <textarea
-            id="p-notes"
-            value={draft.style_notes}
-            onChange={(e) => patch({ style_notes: e.target.value })}
-            rows={3}
-            placeholder="Optional notes for your stylist."
-            className="flex w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-light ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-          />
-        </div>
       </Section>
 
-      <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-line bg-canvas/90 px-1 py-4 backdrop-blur">
+      {/* Header sign-out is hidden on mobile — offer it here instead. */}
+      <div className="flex justify-center sm:hidden">
+        <SignOutButton className="min-h-11" />
+      </div>
+
+      <div className="sticky bottom-16 -mx-1 flex items-center justify-end gap-3 border-t border-line bg-canvas/90 px-1 py-4 backdrop-blur sm:bottom-0">
         {dirty && (
           <span className="text-xs font-light text-muted-foreground">
-            Unsaved changes
+            {t("profile.unsavedChanges")}
           </span>
         )}
-        <Button onClick={save} disabled={saving || !dirty}>
+        <Button onClick={save} disabled={saving || !dirty} className="min-h-11">
           {saving && <Loader2 className="animate-spin" />}
-          Save changes
+          {t("profile.saveChanges")}
         </Button>
       </div>
     </div>

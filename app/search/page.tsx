@@ -1,8 +1,6 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "@/lib/supabase/server";
-import { Brand } from "@/components/brand";
-import { SignOutButton } from "@/components/sign-out-button";
 import { SearchClient } from "@/components/search-client";
 
 export default async function SearchPage() {
@@ -28,10 +26,6 @@ export default async function SearchPage() {
 
   return (
     <div className="mx-auto min-h-screen w-full max-w-6xl px-4 py-6 lg:px-6">
-      <header className="mb-8 flex items-center justify-between">
-        <Brand />
-        <SignOutButton />
-      </header>
       <SearchClient
         profile={profile}
         userId={user.id}

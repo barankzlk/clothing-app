@@ -100,14 +100,14 @@ export type FavoriteInsert = {
 export type SearchProduct = {
   title: string;
   shop: string;
+  shop_logo: string;
   price: string;
   url: string;
   image_url: string | null;
   reason: string;
-  in_stock: boolean;
 };
 
 export type SearchResponse = {
   results: SearchProduct[];
-  search_summary: string;
+  summary: string;
 };
