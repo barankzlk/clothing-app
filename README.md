@@ -1,11 +1,11 @@
-# YAZ
+# DRIP
 
 An AI-powered personal fashion search app. Describe a piece in your own words and
-YAZ searches real European online shops, filtered to your size, style, and budget.
+DRIP searches real European online shops, filtered to your size, style, and budget.
 
 Built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS + shadcn/ui**,
-**Supabase** (Postgres + Auth), and the **Anthropic API** (`claude-haiku-4-5-20251001`)
-with the `web_search_20250305` tool.
+**Supabase** (Postgres + Auth), and the **Anthropic API** (`claude-sonnet-4-6`) with
+the `web_search_20250305` tool.
 
 ## Features
 

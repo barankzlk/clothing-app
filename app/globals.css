@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    /* YAZ editorial palette mapped to shadcn semantic tokens.
+    /* DRIP editorial palette mapped to shadcn semantic tokens.
        Values are HSL channels (no hsl() wrapper) per shadcn convention. */
     --background: 60 11% 98%; /* #FAFAF9 canvas */
     --foreground: 0 0% 10%; /* #1A1A1A ink */

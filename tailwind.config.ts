@@ -18,7 +18,7 @@ const config: Config = {
     },
     extend: {
       colors: {
-        // YAZ editorial palette — calm, muted, premium.
+        // DRIP editorial palette — calm, muted, premium.
         canvas: "#FAFAF9", // near-white background
         ink: "#1A1A1A", // dark text
         sage: {

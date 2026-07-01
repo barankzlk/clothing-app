@@ -14,15 +14,6 @@ import { BUDGET_MAX, BUDGET_MIN } from "@/lib/style-tags";
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-// 16 products at ~7 fields each (incl. two real URLs) already runs ~1800+
-// tokens on its own, before any web-search overhead. This ceiling only caps
-// spend on a response that would otherwise run away — billing is per token
-// actually generated, not the ceiling, so this isn't a bigger bill on a
-// normal search; it's the difference between a truncated dead end (which
-// still costs the full 1500 tokens for zero usable results) and a complete,
-// parseable response.
-const MAX_TOKENS = 4000;
-
 export async function POST(request: Request) {
   // 1. Require an authenticated user.
   const supabase = await createClient();
@@ -40,14 +31,11 @@ export async function POST(request: Request) {
     );
   }
 
-  // 2. Parse the request body. `userProfile` is accepted per the API contract
-  // but not trusted for sizing — the full profile is always re-read from the
-  // database below so a tampered client payload can't skew results.
+  // 2. Parse the request body.
   let body: {
     query?: unknown;
-    userProfile?: unknown;
     budgetMax?: unknown;
-    activeFilters?: unknown;
+    occasionFilter?: unknown;
   };
   try {
     body = await request.json();
@@ -62,11 +50,11 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const activeFilters = Array.isArray(body.activeFilters)
-    ? body.activeFilters.filter((f): f is string => typeof f === "string")
-    : [];
 
-  // 3. Load the caller's full profile from the database (don't trust client copy).
+  const occasionFilter =
+    typeof body.occasionFilter === "string" ? body.occasionFilter : null;
+
+  // 3. Load the caller's profile from the database (don't trust client copy).
   const { data: profile } = await supabase
     .from("profiles")
     .select("*")
@@ -88,72 +76,35 @@ export async function POST(request: Request) {
     Math.max(BUDGET_MIN, Number.isFinite(requested) ? requested : fallback),
   );
 
-  const systemPrompt = buildSystemPrompt({ profile, budgetMax, activeFilters });
+  const systemPrompt = buildSystemPrompt({ profile, budgetMax, occasionFilter });
 
   // 4. Call Anthropic with the web search tool enabled.
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
+  let responseText = "";
   try {
-    const messages: Anthropic.MessageParam[] = [
-      {
-        role: "user",
-        content: `Find clothing for this request: "${query}". Remember to return only the JSON object described in your instructions.`,
-      },
-    ];
-    let text = "";
-    let stopReason: string | null = null;
-    let searchCount = 0;
-    const searchErrors: string[] = [];
+    const message = await anthropic.messages.create({
+      model: SEARCH_MODEL,
+      max_tokens: 4096,
+      system: systemPrompt,
+      tools: [
+        {
+          type: "web_search_20250305",
+          name: "web_search",
+          max_uses: 6,
+        },
+      ],
+      messages: [
+        {
+          role: "user",
+          content: `Find clothing for this request: "${query}". Remember to return only the JSON object described in your instructions.`,
+        },
+      ],
+    });
 
-    // Resume across web-search `pause_turn` boundaries (up to 3 hops).
-    for (let hop = 0; hop < 3; hop++) {
-      const message = await anthropic.messages.create({
-        model: SEARCH_MODEL,
-        max_tokens: MAX_TOKENS,
-        system: systemPrompt,
-        tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
-        messages,
-      });
-      for (const block of message.content) {
-        if (block.type === "text") text += block.text;
-        if (block.type === "server_tool_use" && block.name === "web_search") {
-          searchCount++;
-        }
-        if (block.type === "web_search_tool_result") {
-          const content = block.content as unknown;
-          if (content && !Array.isArray(content) && typeof content === "object") {
-            const err = content as { error_code?: string };
-            if (err.error_code) searchErrors.push(err.error_code);
-          }
-        }
-      }
-      stopReason = message.stop_reason;
-      if (message.stop_reason === "pause_turn") {
-        messages.push({ role: "assistant", content: message.content });
-        continue;
-      }
-      break;
+    for (const block of message.content) {
+      if (block.type === "text") responseText += block.text;
     }
-
-    const parsed = extractJson(text);
-    const { results, summary } = normalizeProducts(parsed, text);
-
-    if (results.length === 0) {
-      const debug = {
-        stopReason,
-        searchCount,
-        searchErrors,
-        textLen: text.length,
-        textPreview: text.slice(0, 600),
-      };
-      // Surfaces in Vercel function logs.
-      console.error(`[search] 0 products. ${JSON.stringify(debug)}`);
-      // Also hand it back to the client so it's visible in the browser
-      // console without needing to open the Vercel dashboard.
-      return NextResponse.json({ results, summary, debug });
-    }
-
-    return NextResponse.json({ results, summary });
   } catch (err) {
     const detail =
       err instanceof Anthropic.APIError
@@ -167,4 +118,16 @@ export async function POST(request: Request) {
       { status: 502 },
     );
   }
+
+  // 5. Parse and normalize the structured result.
+  const parsed = extractJson(responseText);
+  if (parsed === null) {
+    return NextResponse.json(
+      { error: "Couldn't read the search results. Please try again." },
+      { status: 502 },
+    );
+  }
+
+  const { results, search_summary } = normalizeProducts(parsed);
+  return NextResponse.json({ results, search_summary });
 }

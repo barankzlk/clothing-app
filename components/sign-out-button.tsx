@@ -3,13 +3,11 @@
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { useLocale } from "@/lib/i18n/locale-context";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 export function SignOutButton({ className }: { className?: string }) {
   const router = useRouter();
-  const { t } = useLocale();
 
   async function signOut() {
     const supabase = createClient();
@@ -25,7 +23,7 @@ export function SignOutButton({ className }: { className?: string }) {
       onClick={signOut}
       className={cn("text-muted-foreground", className)}
     >
-      <LogOut className="size-4" /> {t("common.signOut")}
+      <LogOut className="size-4" /> Sign out
     </Button>
   );
 }

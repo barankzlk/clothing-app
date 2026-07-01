@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { AppHeader } from "@/components/app-header";
+import { Brand } from "@/components/brand";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 
 export default async function OnboardingPage() {
@@ -22,9 +22,9 @@ export default async function OnboardingPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center px-6 py-10">
-      <div className="w-full max-w-xl">
-        <AppHeader brandHref="/onboarding" showSignOut={false} className="mb-10" />
-      </div>
+      <header className="mb-10 w-full max-w-xl">
+        <Brand href="/onboarding" />
+      </header>
       <OnboardingWizard
         userId={user.id}
         email={user.email ?? ""}

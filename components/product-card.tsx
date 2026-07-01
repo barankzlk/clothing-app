@@ -1,11 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Heart, ExternalLink, Trash2, Loader2 } from "lucide-react";
+import { Heart, ExternalLink, Trash2, ImageOff, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { clearbitLogo } from "@/lib/shops";
-import { useLocale } from "@/lib/i18n/locale-context";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -16,7 +14,6 @@ export type ProductCardData = {
   url: string;
   image_url: string | null;
   reason: string;
-  shop_logo?: string | null;
 };
 
 export function ProductCard({
@@ -34,19 +31,12 @@ export function ProductCard({
   onToggleFavorite?: () => void;
   onRemove?: () => void;
 }) {
-  const { t } = useLocale();
   const [imgFailed, setImgFailed] = useState(false);
-  const [logoFailed, setLogoFailed] = useState(false);
-
-  const showImage = Boolean(product.image_url) && !imgFailed;
-  // Fall back to the shop logo (Clearbit) — prefer one supplied by the API,
-  // else derive it from the shop name so a card is never empty.
-  const logoUrl = product.shop_logo || clearbitLogo(product.shop);
-  const showLogo = !showImage && Boolean(logoUrl) && !logoFailed;
+  const showImage = product.image_url && !imgFailed;
 
   return (
     <Card className="flex animate-fade-in flex-col overflow-hidden">
-      <div className="relative h-[200px] w-full overflow-hidden border-b border-line bg-[#F5F5F5] sm:h-60">
+      <div className="relative h-60 w-full overflow-hidden border-b border-line bg-secondary">
         {showImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -56,20 +46,10 @@ export function ProductCard({
             loading="lazy"
             onError={() => setImgFailed(true)}
           />
-        ) : showLogo ? (
-          <div className="flex h-full w-full items-center justify-center bg-[#F5F5F5] p-8">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={logoUrl}
-              alt={product.shop}
-              className="max-h-16 max-w-[65%] object-contain"
-              loading="lazy"
-              onError={() => setLogoFailed(true)}
-            />
-          </div>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center bg-[#F5F5F5] text-center text-muted-foreground">
-            <span className="text-sm font-medium text-ink">{product.shop}</span>
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
+            <ImageOff className="size-6" />
+            <span className="text-xs font-light">No preview</span>
           </div>
         )}
       </div>
@@ -90,12 +70,12 @@ export function ProductCard({
           </p>
         )}
 
-        <div className="mt-auto flex flex-col gap-2 pt-3 sm:flex-row sm:items-center">
+        <div className="mt-auto flex items-center gap-2 pt-3">
           {mode === "search" ? (
             <Button
               variant={favorited ? "sage" : "outline"}
               size="sm"
-              className="min-h-11 w-full sm:flex-1"
+              className="flex-1"
               onClick={onToggleFavorite}
               disabled={pending}
               aria-pressed={favorited}
@@ -107,13 +87,13 @@ export function ProductCard({
                   className={cn("size-4", favorited && "fill-current")}
                 />
               )}
-              {favorited ? t("productCard.saved") : t("productCard.save")}
+              {favorited ? "Saved" : "Save"}
             </Button>
           ) : (
             <Button
               variant="outline"
               size="sm"
-              className="min-h-11 w-full sm:flex-1"
+              className="flex-1"
               onClick={onRemove}
               disabled={pending}
             >
@@ -122,13 +102,13 @@ export function ProductCard({
               ) : (
                 <Trash2 className="size-4" />
               )}
-              {t("productCard.remove")}
+              Remove
             </Button>
           )}
 
-          <Button variant="default" size="sm" className="min-h-11 w-full sm:flex-1" asChild>
+          <Button variant="default" size="sm" className="flex-1" asChild>
             <a href={product.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-4" /> {t("productCard.view")}
+              <ExternalLink className="size-4" /> View
             </a>
           </Button>
         </div>
@@ -141,15 +121,15 @@ export function ProductCard({
 export function ProductCardSkeleton() {
   return (
     <Card className="overflow-hidden">
-      <div className="h-[200px] w-full animate-skeleton-pulse border-b border-line bg-muted sm:h-60" />
+      <div className="h-60 w-full animate-skeleton-pulse border-b border-line bg-muted" />
       <div className="space-y-3 p-4">
         <div className="h-3 w-16 animate-skeleton-pulse rounded bg-muted" />
         <div className="h-4 w-3/4 animate-skeleton-pulse rounded bg-muted" />
         <div className="h-5 w-20 animate-skeleton-pulse rounded bg-muted" />
         <div className="h-3 w-full animate-skeleton-pulse rounded bg-muted" />
-        <div className="flex flex-col gap-2 pt-2 sm:flex-row">
-          <div className="h-11 w-full animate-skeleton-pulse rounded bg-muted sm:flex-1" />
-          <div className="h-11 w-full animate-skeleton-pulse rounded bg-muted sm:flex-1" />
+        <div className="flex gap-2 pt-2">
+          <div className="h-9 flex-1 animate-skeleton-pulse rounded bg-muted" />
+          <div className="h-9 flex-1 animate-skeleton-pulse rounded bg-muted" />
         </div>
       </div>
     </Card>

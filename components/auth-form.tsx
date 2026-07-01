@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
-import { useLocale } from "@/lib/i18n/locale-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -16,7 +15,6 @@ type Mode = "signin" | "signup";
 
 export function AuthForm() {
   const router = useRouter();
-  const { t } = useLocale();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +57,7 @@ export function AuthForm() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 6) {
-      toast.error(t("auth.passwordTooShort"));
+      toast.error("Password must be at least 6 characters.");
       return;
     }
     setLoading(true);
@@ -81,12 +79,12 @@ export function AuthForm() {
     }
     // If email confirmation is disabled, a session is returned immediately.
     if (data.session && data.user) {
-      toast.success(t("auth.accountCreated"));
+      toast.success("Account created. Let's set up your profile.");
       await routeAfterAuth(data.user.id);
       return;
     }
     // Otherwise the user must confirm via email first.
-    toast.success(t("auth.checkInbox"));
+    toast.success("Check your inbox to confirm your email, then sign in.");
     setMode("signin");
   }
 
@@ -97,19 +95,15 @@ export function AuthForm() {
       className="w-full"
     >
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="signin" className="min-h-11">
-          {t("auth.signInTab")}
-        </TabsTrigger>
-        <TabsTrigger value="signup" className="min-h-11">
-          {t("auth.signUpTab")}
-        </TabsTrigger>
+        <TabsTrigger value="signin">Sign in</TabsTrigger>
+        <TabsTrigger value="signup">Create account</TabsTrigger>
       </TabsList>
 
       <TabsContent value="signin" className="mt-6">
         <form onSubmit={handleSignIn} className="space-y-4">
           <Field
             id="signin-email"
-            label={t("auth.email")}
+            label="Email"
             type="email"
             value={email}
             onChange={setEmail}
@@ -117,15 +111,15 @@ export function AuthForm() {
           />
           <Field
             id="signin-password"
-            label={t("auth.password")}
+            label="Password"
             type="password"
             value={password}
             onChange={setPassword}
             autoComplete="current-password"
           />
-          <Button type="submit" className="min-h-11 w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="animate-spin" />}
-            {t("auth.signInButton")}
+            Sign in
           </Button>
         </form>
       </TabsContent>
@@ -134,7 +128,7 @@ export function AuthForm() {
         <form onSubmit={handleSignUp} className="space-y-4">
           <Field
             id="signup-email"
-            label={t("auth.email")}
+            label="Email"
             type="email"
             value={email}
             onChange={setEmail}
@@ -142,16 +136,16 @@ export function AuthForm() {
           />
           <Field
             id="signup-password"
-            label={t("auth.password")}
+            label="Password"
             type="password"
             value={password}
             onChange={setPassword}
             autoComplete="new-password"
-            hint={t("auth.passwordHint")}
+            hint="At least 6 characters."
           />
-          <Button type="submit" className="min-h-11 w-full" disabled={loading}>
+          <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="animate-spin" />}
-            {t("auth.createAccountButton")}
+            Create account
           </Button>
         </form>
       </TabsContent>
@@ -186,7 +180,6 @@ function Field({
         onChange={(e) => onChange(e.target.value)}
         autoComplete={autoComplete}
         required
-        className="min-h-11"
       />
       {hint && <p className="text-xs font-light text-muted-foreground">{hint}</p>}
     </div>

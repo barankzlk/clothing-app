@@ -1,4 +1,4 @@
--- YAZ — initial schema
+-- DRIP — initial schema
 -- Run this in the Supabase SQL editor, or via `supabase db push` with the CLI.
 
 -- =====================================================================
