@@ -4,24 +4,36 @@ import { humanizeTag } from "@/lib/utils";
 export const SUGGESTION_MODEL =
   process.env.ANTHROPIC_SUGGESTION_MODEL || "claude-haiku-4-5";
 
+const LOCALE_LANGUAGE: Record<string, string> = {
+  de: "German",
+  pt: "Brazilian Portuguese",
+};
+
 /** Build the system prompt asking for a handful of concrete search ideas. */
 export function buildSuggestionPrompt(
   tags: string[],
   gender: string | null,
+  locale: string | null,
 ): string {
   const readableTags = tags.map(humanizeTag).join(", ");
   const genderLine =
-    gender && gender !== "prefer_not_to_say"
-      ? `\nShopping for: ${humanizeTag(gender)}.`
-      : "";
+    gender === "male"
+      ? "\nShopping for: menswear."
+      : gender === "female"
+        ? "\nShopping for: womenswear."
+        : "";
+
+  const language = (locale && LOCALE_LANGUAGE[locale]) || "German";
 
   return `You are a fashion assistant helping someone decide what to search for.
 
 They've selected these style filters: ${readableTags}.${genderLine}
 
-Suggest exactly 6 specific, concrete clothing or accessory items that fit these filters — things a person could literally type into a shop's search bar. Keep each one short: 2-5 words (e.g. "half-zip pullover", "silk slip dress", "wide-leg trousers"). Make them varied, not repetitive category-wise.
+Suggest exactly 6 specific, concrete clothing or accessory items that fit these filters — things a person could literally type into a shop's search bar. Keep each one short: 2-4 words. Be creative and varied: mix garment types, don't just restate the filters, and avoid repeating the same category twice (e.g. don't suggest two dresses).
 
-Respond with ONLY a JSON array of 6 strings, no markdown, no prose, no code fences. Example shape: ["item one", "item two", "item three", "item four", "item five", "item six"]`;
+Write every suggestion in ${language}, since these are typed directly into ${language}-language shop search bars — not in English.
+
+Respond with ONLY a JSON array of 6 strings, no markdown, no prose, no code fences. Example shape (do not reuse these words — invent your own): ["item one", "item two", "item three", "item four", "item five", "item six"]`;
 }
 
 /** Tolerantly extract a string array from arbitrary model text. */

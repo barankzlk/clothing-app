@@ -1,0 +1,481 @@
+/**
+ * Flat-ish nested dictionaries. `en` is the source of truth for keys and the
+ * runtime fallback for anything missing elsewhere; `de` and `pt` are typed
+ * against it (`Dict`) so a missing translation is a compile error, not a
+ * silent gap.
+ */
+export const en = {
+  nav: {
+    editProfile: "Edit profile",
+    myFavorites: "My favorites",
+    signOut: "Sign out",
+  },
+  auth: {
+    tagline:
+      "Your personal fashion search. Sign in to find pieces chosen for your size, style, and budget.",
+    disclaimer:
+      "By continuing you agree to receive product recommendations curated to your profile.",
+    signIn: "Sign in",
+    createAccount: "Create account",
+    email: "Email",
+    password: "Password",
+    passwordHint: "At least 6 characters.",
+    passwordTooShort: "Password must be at least 6 characters.",
+    accountCreated: "Account created. Let's set up your profile.",
+    confirmEmail: "Check your inbox to confirm your email, then sign in.",
+  },
+  onboarding: {
+    stepAboutTitle: "About you",
+    stepAboutSubtitle: "The basics, so we can address you right.",
+    stepMeasurementsTitle: "Your measurements",
+    stepMeasurementsSubtitle: "We only surface pieces in your size.",
+    stepBudgetTitle: "Budget",
+    stepBudgetSubtitle: "Your default per-item budget.",
+    stepOf: "Step {current} of {total}",
+    name: "Name",
+    namePlaceholder: "Your name",
+    gender: "Gender",
+    genderPlaceholder: "Select…",
+    age: "Age",
+    agePlaceholder: "e.g. 28",
+    ageUnit: "yrs",
+    height: "Height",
+    heightPlaceholder: "175",
+    weight: "Weight",
+    weightPlaceholder: "68",
+    bodyShape: "Body shape",
+    topSize: "Top size",
+    bottomSize: "Bottom (EU)",
+    shoeSize: "Shoe (EU)",
+    shoeSizePlaceholder: "42",
+    defaultBudget: "Default budget per item",
+    back: "Back",
+    continueBtn: "Continue",
+    finish: "Finish",
+    errorName: "Please tell us your name.",
+    errorGender: "Please select how you identify.",
+    errorAge: "Please enter a valid age.",
+    errorHeight: "Please enter your height.",
+    errorWeight: "Please enter your weight.",
+    errorBodyShape: "Please choose a body shape.",
+    errorTopSize: "Please choose a top size.",
+    errorBottomSize: "Please choose a bottom size.",
+    errorShoeSize: "Please enter your shoe size.",
+    done: "You're all set. Let's find something good.",
+  },
+  profilePage: {
+    heading: "Your profile",
+    subtitle: "Tune your details — every search uses them.",
+    search: "Search",
+  },
+  profileForm: {
+    lastUpdated: "Profile last updated: {time}",
+    sectionAboutYou: "About you",
+    sectionMeasurements: "Measurements",
+    sectionMeasurementsDesc: "Used to keep results in your size.",
+    sectionBudget: "Budget",
+    sectionBudgetDesc:
+      "Your default per-item budget — you can still adjust it per search.",
+    unsavedChanges: "Unsaved changes",
+    saveChanges: "Save changes",
+    saved: "Profile saved.",
+  },
+  time: {
+    never: "never",
+    justNow: "just now",
+    minuteAgo: "{count} minute ago",
+    minutesAgo: "{count} minutes ago",
+    hourAgo: "{count} hour ago",
+    hoursAgo: "{count} hours ago",
+    dayAgo: "{count} day ago",
+    daysAgo: "{count} days ago",
+    monthAgo: "{count} month ago",
+    monthsAgo: "{count} months ago",
+    yearAgo: "{count} year ago",
+    yearsAgo: "{count} years ago",
+  },
+  search: {
+    placeholder:
+      "Search for anything… e.g. 'linen summer dress' or 'cozy winter coat'",
+    findIt: "Find it",
+    filters: "Filters",
+    show: "Show",
+    hide: "Hide",
+    groupAesthetic: "Aesthetic",
+    groupOccasion: "Occasion",
+    groupFabricFit: "Fabric & Fit",
+    groupColors: "Colors",
+    ideasHeading: "Not sure what to search for?",
+    thinking: "Thinking of ideas…",
+    noIdeas: "No ideas yet — try picking a filter above.",
+    whatAbout: "What about a {idea}?",
+    liveResults:
+      "Live search results for “{query}” — each link opens that shop's own search, so what you see is always in stock.",
+    introTitleNamed: "What are you after, {name}?",
+    introTitle: "What are you after?",
+    introBody:
+      "Describe a piece in your own words, or pick a filter for ideas. We'll take you straight to that search on every shop we cover.",
+    top: "Top {size}",
+    bottom: "Bottom {size}",
+    shoe: "Shoe EU {size}",
+    budget: "Budget €{amount}",
+    emptyQuery: "Type something to search for.",
+  },
+  shopCard: {
+    resultsFor: "See results for “{query}”",
+    search: "Search",
+  },
+  favoritesPage: {
+    heading: "My favorites",
+    subtitle: "Your saved pieces, in one place.",
+    search: "Search",
+  },
+  favoritesClient: {
+    count: "{count} saved item",
+    countPlural: "{count} saved items",
+    sortBy: "Sort by",
+    sortDate: "Date saved",
+    sortShop: "Shop",
+    removed: "Removed from favorites.",
+    emptyTitle: "Nothing saved yet",
+    emptyBody: "Start searching to build your edit.",
+    startSearching: "Start searching",
+  },
+  productCard: {
+    remove: "Remove",
+    view: "View",
+    untitled: "Untitled",
+    shopFallback: "Shop",
+    noPreview: "No preview",
+  },
+} satisfies Record<string, Record<string, string>>;
+
+export type Dict = typeof en;
+
+export const de: Dict = {
+  nav: {
+    editProfile: "Profil bearbeiten",
+    myFavorites: "Meine Favoriten",
+    signOut: "Abmelden",
+  },
+  auth: {
+    tagline:
+      "Deine persönliche Modesuche. Melde dich an, um Teile zu finden, die auf deine Größe, deinen Stil und dein Budget abgestimmt sind.",
+    disclaimer:
+      "Mit der Fortsetzung stimmst du zu, Produktempfehlungen zu erhalten, die auf dein Profil zugeschnitten sind.",
+    signIn: "Anmelden",
+    createAccount: "Konto erstellen",
+    email: "E-Mail",
+    password: "Passwort",
+    passwordHint: "Mindestens 6 Zeichen.",
+    passwordTooShort: "Das Passwort muss mindestens 6 Zeichen lang sein.",
+    accountCreated: "Konto erstellt. Lass uns dein Profil einrichten.",
+    confirmEmail:
+      "Bestätige deine E-Mail über den Link in deinem Posteingang und melde dich dann an.",
+  },
+  onboarding: {
+    stepAboutTitle: "Über dich",
+    stepAboutSubtitle: "Die Basics, damit wir dich richtig ansprechen können.",
+    stepMeasurementsTitle: "Deine Maße",
+    stepMeasurementsSubtitle: "Wir zeigen dir nur Teile in deiner Größe.",
+    stepBudgetTitle: "Budget",
+    stepBudgetSubtitle: "Dein Standardbudget pro Teil.",
+    stepOf: "Schritt {current} von {total}",
+    name: "Name",
+    namePlaceholder: "Dein Name",
+    gender: "Geschlecht",
+    genderPlaceholder: "Auswählen…",
+    age: "Alter",
+    agePlaceholder: "z. B. 28",
+    ageUnit: "Jahre",
+    height: "Größe",
+    heightPlaceholder: "175",
+    weight: "Gewicht",
+    weightPlaceholder: "68",
+    bodyShape: "Körperform",
+    topSize: "Oberteilgröße",
+    bottomSize: "Hosengröße (EU)",
+    shoeSize: "Schuhgröße (EU)",
+    shoeSizePlaceholder: "42",
+    defaultBudget: "Standardbudget pro Teil",
+    back: "Zurück",
+    continueBtn: "Weiter",
+    finish: "Fertig",
+    errorName: "Bitte gib deinen Namen ein.",
+    errorGender: "Bitte wähle dein Geschlecht aus.",
+    errorAge: "Bitte gib ein gültiges Alter ein.",
+    errorHeight: "Bitte gib deine Größe ein.",
+    errorWeight: "Bitte gib dein Gewicht ein.",
+    errorBodyShape: "Bitte wähle eine Körperform aus.",
+    errorTopSize: "Bitte wähle eine Oberteilgröße aus.",
+    errorBottomSize: "Bitte wähle eine Hosengröße aus.",
+    errorShoeSize: "Bitte gib deine Schuhgröße ein.",
+    done: "Alles bereit. Lass uns etwas Gutes finden.",
+  },
+  profilePage: {
+    heading: "Dein Profil",
+    subtitle: "Passe deine Angaben an — jede Suche nutzt sie.",
+    search: "Suche",
+  },
+  profileForm: {
+    lastUpdated: "Profil zuletzt aktualisiert: {time}",
+    sectionAboutYou: "Über dich",
+    sectionMeasurements: "Maße",
+    sectionMeasurementsDesc: "Damit Ergebnisse in deiner Größe bleiben.",
+    sectionBudget: "Budget",
+    sectionBudgetDesc:
+      "Dein Standardbudget pro Teil — du kannst es pro Suche anpassen.",
+    unsavedChanges: "Ungespeicherte Änderungen",
+    saveChanges: "Änderungen speichern",
+    saved: "Profil gespeichert.",
+  },
+  time: {
+    never: "nie",
+    justNow: "gerade eben",
+    minuteAgo: "vor {count} Minute",
+    minutesAgo: "vor {count} Minuten",
+    hourAgo: "vor {count} Stunde",
+    hoursAgo: "vor {count} Stunden",
+    dayAgo: "vor {count} Tag",
+    daysAgo: "vor {count} Tagen",
+    monthAgo: "vor {count} Monat",
+    monthsAgo: "vor {count} Monaten",
+    yearAgo: "vor {count} Jahr",
+    yearsAgo: "vor {count} Jahren",
+  },
+  search: {
+    placeholder:
+      "Suche nach allem… z. B. „Leinenkleid Sommer“ oder „kuscheliger Wintermantel“",
+    findIt: "Finden",
+    filters: "Filter",
+    show: "Anzeigen",
+    hide: "Verbergen",
+    groupAesthetic: "Ästhetik",
+    groupOccasion: "Anlass",
+    groupFabricFit: "Stoff & Passform",
+    groupColors: "Farben",
+    ideasHeading: "Weißt du nicht, wonach du suchen sollst?",
+    thinking: "Denke mir Ideen aus…",
+    noIdeas: "Noch keine Ideen — wähle oben einen Filter aus.",
+    whatAbout: "Wie wäre es mit „{idea}“?",
+    liveResults:
+      "Live-Suchergebnisse für „{query}“ — jeder Link öffnet die eigene Suche des Shops, sodass du immer nur Verfügbares siehst.",
+    introTitleNamed: "Wonach suchst du, {name}?",
+    introTitle: "Wonach suchst du?",
+    introBody:
+      "Beschreibe ein Teil mit deinen eigenen Worten oder wähle einen Filter für Ideen. Wir bringen dich direkt zur passenden Suche bei jedem Shop, den wir abdecken.",
+    top: "Oberteil {size}",
+    bottom: "Hose {size}",
+    shoe: "Schuh EU {size}",
+    budget: "Budget €{amount}",
+    emptyQuery: "Gib etwas ein, wonach du suchen möchtest.",
+  },
+  shopCard: {
+    resultsFor: "Ergebnisse für „{query}“ ansehen",
+    search: "Suchen",
+  },
+  favoritesPage: {
+    heading: "Meine Favoriten",
+    subtitle: "Deine gespeicherten Teile, an einem Ort.",
+    search: "Suche",
+  },
+  favoritesClient: {
+    count: "{count} gespeichertes Teil",
+    countPlural: "{count} gespeicherte Teile",
+    sortBy: "Sortieren nach",
+    sortDate: "Speicherdatum",
+    sortShop: "Shop",
+    removed: "Aus Favoriten entfernt.",
+    emptyTitle: "Noch nichts gespeichert",
+    emptyBody: "Starte eine Suche, um deine Auswahl aufzubauen.",
+    startSearching: "Suche starten",
+  },
+  productCard: {
+    remove: "Entfernen",
+    view: "Ansehen",
+    untitled: "Unbenannt",
+    shopFallback: "Shop",
+    noPreview: "Keine Vorschau",
+  },
+};
+
+export const pt: Dict = {
+  nav: {
+    editProfile: "Editar perfil",
+    myFavorites: "Meus favoritos",
+    signOut: "Sair",
+  },
+  auth: {
+    tagline:
+      "Sua busca de moda pessoal. Entre para encontrar peças escolhidas para o seu tamanho, estilo e orçamento.",
+    disclaimer:
+      "Ao continuar, você concorda em receber recomendações de produtos personalizadas para o seu perfil.",
+    signIn: "Entrar",
+    createAccount: "Criar conta",
+    email: "E-mail",
+    password: "Senha",
+    passwordHint: "Pelo menos 6 caracteres.",
+    passwordTooShort: "A senha deve ter pelo menos 6 caracteres.",
+    accountCreated: "Conta criada. Vamos configurar seu perfil.",
+    confirmEmail:
+      "Confirme seu e-mail pelo link recebido e depois faça login.",
+  },
+  onboarding: {
+    stepAboutTitle: "Sobre você",
+    stepAboutSubtitle: "O básico, para falarmos com você do jeito certo.",
+    stepMeasurementsTitle: "Suas medidas",
+    stepMeasurementsSubtitle: "Só mostramos peças no seu tamanho.",
+    stepBudgetTitle: "Orçamento",
+    stepBudgetSubtitle: "Seu orçamento padrão por peça.",
+    stepOf: "Etapa {current} de {total}",
+    name: "Nome",
+    namePlaceholder: "Seu nome",
+    gender: "Gênero",
+    genderPlaceholder: "Selecionar…",
+    age: "Idade",
+    agePlaceholder: "ex.: 28",
+    ageUnit: "anos",
+    height: "Altura",
+    heightPlaceholder: "175",
+    weight: "Peso",
+    weightPlaceholder: "68",
+    bodyShape: "Tipo de corpo",
+    topSize: "Tamanho de cima",
+    bottomSize: "Tamanho de baixo (EU)",
+    shoeSize: "Número do calçado (EU)",
+    shoeSizePlaceholder: "42",
+    defaultBudget: "Orçamento padrão por peça",
+    back: "Voltar",
+    continueBtn: "Continuar",
+    finish: "Concluir",
+    errorName: "Por favor, nos diga seu nome.",
+    errorGender: "Por favor, selecione seu gênero.",
+    errorAge: "Por favor, insira uma idade válida.",
+    errorHeight: "Por favor, insira sua altura.",
+    errorWeight: "Por favor, insira seu peso.",
+    errorBodyShape: "Por favor, escolha um tipo de corpo.",
+    errorTopSize: "Por favor, escolha um tamanho de cima.",
+    errorBottomSize: "Por favor, escolha um tamanho de baixo.",
+    errorShoeSize: "Por favor, insira seu número de calçado.",
+    done: "Tudo pronto. Vamos encontrar algo bom.",
+  },
+  profilePage: {
+    heading: "Seu perfil",
+    subtitle: "Ajuste seus dados — cada busca os utiliza.",
+    search: "Buscar",
+  },
+  profileForm: {
+    lastUpdated: "Perfil atualizado pela última vez: {time}",
+    sectionAboutYou: "Sobre você",
+    sectionMeasurements: "Medidas",
+    sectionMeasurementsDesc: "Usadas para manter os resultados no seu tamanho.",
+    sectionBudget: "Orçamento",
+    sectionBudgetDesc:
+      "Seu orçamento padrão por peça — você ainda pode ajustá-lo em cada busca.",
+    unsavedChanges: "Alterações não salvas",
+    saveChanges: "Salvar alterações",
+    saved: "Perfil salvo.",
+  },
+  time: {
+    never: "nunca",
+    justNow: "agora mesmo",
+    minuteAgo: "há {count} minuto",
+    minutesAgo: "há {count} minutos",
+    hourAgo: "há {count} hora",
+    hoursAgo: "há {count} horas",
+    dayAgo: "há {count} dia",
+    daysAgo: "há {count} dias",
+    monthAgo: "há {count} mês",
+    monthsAgo: "há {count} meses",
+    yearAgo: "há {count} ano",
+    yearsAgo: "há {count} anos",
+  },
+  search: {
+    placeholder:
+      "Busque qualquer coisa… ex.: 'vestido de linho de verão' ou 'casaco de inverno aconchegante'",
+    findIt: "Buscar",
+    filters: "Filtros",
+    show: "Mostrar",
+    hide: "Ocultar",
+    groupAesthetic: "Estética",
+    groupOccasion: "Ocasião",
+    groupFabricFit: "Tecido & Caimento",
+    groupColors: "Cores",
+    ideasHeading: "Não sabe o que procurar?",
+    thinking: "Pensando em ideias…",
+    noIdeas: "Ainda sem ideias — escolha um filtro acima.",
+    whatAbout: "Que tal um(a) {idea}?",
+    liveResults:
+      "Resultados ao vivo para “{query}” — cada link abre a própria busca da loja, então o que você vê está sempre disponível.",
+    introTitleNamed: "O que você está procurando, {name}?",
+    introTitle: "O que você está procurando?",
+    introBody:
+      "Descreva uma peça com suas próprias palavras, ou escolha um filtro para ideias. Vamos te levar direto para essa busca em cada loja que cobrimos.",
+    top: "Cima {size}",
+    bottom: "Baixo {size}",
+    shoe: "Calçado EU {size}",
+    budget: "Orçamento €{amount}",
+    emptyQuery: "Digite algo para buscar.",
+  },
+  shopCard: {
+    resultsFor: "Ver resultados para “{query}”",
+    search: "Buscar",
+  },
+  favoritesPage: {
+    heading: "Meus favoritos",
+    subtitle: "Suas peças salvas, em um só lugar.",
+    search: "Buscar",
+  },
+  favoritesClient: {
+    count: "{count} item salvo",
+    countPlural: "{count} itens salvos",
+    sortBy: "Ordenar por",
+    sortDate: "Data salva",
+    sortShop: "Loja",
+    removed: "Removido dos favoritos.",
+    emptyTitle: "Nada salvo ainda",
+    emptyBody: "Comece a buscar para montar sua seleção.",
+    startSearching: "Começar a buscar",
+  },
+  productCard: {
+    remove: "Remover",
+    view: "Ver",
+    untitled: "Sem título",
+    shopFallback: "Loja",
+    noPreview: "Sem pré-visualização",
+  },
+};
+
+/** Resolve a dot-path key against a dict, e.g. "search.findIt". */
+function resolve(dict: Dict, path: string): string | undefined {
+  const parts = path.split(".");
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let cur: any = dict;
+  for (const p of parts) {
+    if (cur && typeof cur === "object" && p in cur) {
+      cur = cur[p];
+    } else {
+      return undefined;
+    }
+  }
+  return typeof cur === "string" ? cur : undefined;
+}
+
+export type Locale = "de" | "pt";
+
+const DICTS: Record<Locale, Dict> = { de, pt };
+
+/** Translate a dot-path key for the given locale, falling back to English. */
+export function translate(
+  locale: Locale,
+  key: string,
+  vars?: Record<string, string | number>,
+): string {
+  let str = resolve(DICTS[locale], key) ?? resolve(en, key) ?? key;
+  if (vars) {
+    for (const [k, v] of Object.entries(vars)) {
+      str = str.replaceAll(`{${k}}`, String(v));
+    }
+  }
+  return str;
+}

@@ -7,6 +7,7 @@ import { Search } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 import type { Favorite } from "@/lib/types";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -21,6 +22,7 @@ import { ProductCard } from "@/components/product-card";
 type SortKey = "date" | "shop";
 
 export function FavoritesClient({ initial }: { initial: Favorite[] }) {
+  const { t } = useLocale();
   const [items, setItems] = useState<Favorite[]>(initial);
   const [sort, setSort] = useState<SortKey>("date");
   const [pending, setPending] = useState<Record<string, boolean>>({});
@@ -53,7 +55,7 @@ export function FavoritesClient({ initial }: { initial: Favorite[] }) {
       return;
     }
     setItems((list) => list.filter((f) => f.id !== id));
-    toast.success("Removed from favorites.");
+    toast.success(t("favoritesClient.removed"));
   }
 
   if (items.length === 0) {
@@ -64,19 +66,24 @@ export function FavoritesClient({ initial }: { initial: Favorite[] }) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <p className="text-sm font-light text-muted-foreground">
-          {items.length} saved item{items.length === 1 ? "" : "s"}
+          {t(
+            items.length === 1
+              ? "favoritesClient.count"
+              : "favoritesClient.countPlural",
+            { count: items.length },
+          )}
         </p>
         <div className="flex items-center gap-2">
           <Label htmlFor="sort" className="text-muted-foreground">
-            Sort by
+            {t("favoritesClient.sortBy")}
           </Label>
           <Select value={sort} onValueChange={(v) => setSort(v as SortKey)}>
             <SelectTrigger id="sort" className="w-40">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="date">Date saved</SelectItem>
-              <SelectItem value="shop">Shop</SelectItem>
+              <SelectItem value="date">{t("favoritesClient.sortDate")}</SelectItem>
+              <SelectItem value="shop">{t("favoritesClient.sortShop")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -86,12 +93,11 @@ export function FavoritesClient({ initial }: { initial: Favorite[] }) {
         {sorted.map((fav) => (
           <ProductCard
             key={fav.id}
-            mode="favorites"
             pending={Boolean(pending[fav.id])}
             onRemove={() => remove(fav.id)}
             product={{
-              title: fav.title ?? "Untitled",
-              shop: fav.shop ?? "Shop",
+              title: fav.title ?? t("productCard.untitled"),
+              shop: fav.shop ?? t("productCard.shopFallback"),
               price: fav.price ?? "",
               url: fav.url ?? "#",
               image_url: fav.image_url,
@@ -105,6 +111,7 @@ export function FavoritesClient({ initial }: { initial: Favorite[] }) {
 }
 
 function EmptyState() {
+  const { t } = useLocale();
   return (
     <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 rounded-lg border border-dashed border-line p-12 text-center">
       <div
@@ -114,14 +121,14 @@ function EmptyState() {
         ♡
       </div>
       <div className="space-y-1">
-        <h2 className="text-lg font-semibold">Nothing saved yet</h2>
+        <h2 className="text-lg font-semibold">{t("favoritesClient.emptyTitle")}</h2>
         <p className="text-sm font-light text-muted-foreground">
-          Start searching to build your edit.
+          {t("favoritesClient.emptyBody")}
         </p>
       </div>
       <Button asChild>
         <Link href="/search">
-          <Search className="size-4" /> Start searching
+          <Search className="size-4" /> {t("favoritesClient.startSearching")}
         </Link>
       </Button>
     </div>

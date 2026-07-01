@@ -20,6 +20,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { tagLabel } from "@/lib/i18n/tag-labels";
 import {
   BodyShapeSelector,
   NumberField,
@@ -28,12 +30,6 @@ import {
   draftToProfilePayload,
   type ProfileDraft,
 } from "@/components/profile-fields";
-
-const STEPS = [
-  { title: "About you", subtitle: "The basics, so we can address you right." },
-  { title: "Your measurements", subtitle: "We only surface pieces in your size." },
-  { title: "Budget", subtitle: "Your default per-item budget." },
-] as const;
 
 export function OnboardingWizard({
   userId,
@@ -45,11 +41,21 @@ export function OnboardingWizard({
   initialProfile: Profile | null;
 }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const [step, setStep] = useState(0);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<ProfileDraft>(() =>
     draftFromProfile(initialProfile),
   );
+
+  const STEPS = [
+    { title: t("onboarding.stepAboutTitle"), subtitle: t("onboarding.stepAboutSubtitle") },
+    {
+      title: t("onboarding.stepMeasurementsTitle"),
+      subtitle: t("onboarding.stepMeasurementsSubtitle"),
+    },
+    { title: t("onboarding.stepBudgetTitle"), subtitle: t("onboarding.stepBudgetSubtitle") },
+  ] as const;
 
   function patch(partial: Partial<ProfileDraft>) {
     setDraft((d) => ({ ...d, ...partial }));
@@ -57,19 +63,19 @@ export function OnboardingWizard({
 
   function validateStep(index: number): string | null {
     if (index === 0) {
-      if (!draft.name.trim()) return "Please tell us your name.";
-      if (!draft.gender) return "Please select how you identify.";
+      if (!draft.name.trim()) return t("onboarding.errorName");
+      if (!draft.gender) return t("onboarding.errorGender");
       const age = Number.parseInt(draft.age, 10);
       if (!draft.age.trim() || Number.isNaN(age) || age < 13 || age > 120)
-        return "Please enter a valid age.";
+        return t("onboarding.errorAge");
     }
     if (index === 1) {
-      if (!draft.height_cm.trim()) return "Please enter your height.";
-      if (!draft.weight_kg.trim()) return "Please enter your weight.";
-      if (!draft.body_shape) return "Please choose a body shape.";
-      if (!draft.clothing_size_top) return "Please choose a top size.";
-      if (!draft.clothing_size_bottom) return "Please choose a bottom size.";
-      if (!draft.shoe_size_eu.trim()) return "Please enter your shoe size.";
+      if (!draft.height_cm.trim()) return t("onboarding.errorHeight");
+      if (!draft.weight_kg.trim()) return t("onboarding.errorWeight");
+      if (!draft.body_shape) return t("onboarding.errorBodyShape");
+      if (!draft.clothing_size_top) return t("onboarding.errorTopSize");
+      if (!draft.clothing_size_bottom) return t("onboarding.errorBottomSize");
+      if (!draft.shoe_size_eu.trim()) return t("onboarding.errorShoeSize");
     }
     return null;
   }
@@ -113,7 +119,7 @@ export function OnboardingWizard({
       toast.error(error.message);
       return;
     }
-    toast.success("You're all set. Let's find something good.");
+    toast.success(t("onboarding.done"));
     router.refresh();
     router.replace("/search");
   }
@@ -125,7 +131,7 @@ export function OnboardingWizard({
       <div className="space-y-3">
         <div className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
           <span>
-            Step {step + 1} of {STEPS.length}
+            {t("onboarding.stepOf", { current: step + 1, total: STEPS.length })}
           </span>
           <span>{Math.round(progress)}%</span>
         </div>
@@ -143,28 +149,31 @@ export function OnboardingWizard({
         {step === 0 && (
           <div className="space-y-5">
             <div className="space-y-2">
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name">{t("onboarding.name")}</Label>
               <Input
                 id="name"
                 value={draft.name}
                 onChange={(e) => patch({ name: e.target.value })}
-                placeholder="Your name"
+                placeholder={t("onboarding.namePlaceholder")}
                 autoComplete="name"
               />
             </div>
             <SelectField
-              label="Gender"
-              placeholder="Select…"
+              label={t("onboarding.gender")}
+              placeholder={t("onboarding.genderPlaceholder")}
               value={draft.gender}
               onChange={(v) => patch({ gender: v })}
-              options={GENDERS}
+              options={GENDERS.map((g) => ({
+                value: g.value,
+                label: tagLabel(g.value, locale),
+              }))}
             />
             <NumberField
-              label="Age"
+              label={t("onboarding.age")}
               value={draft.age}
               onChange={(v) => patch({ age: v })}
-              placeholder="e.g. 28"
-              unit="yrs"
+              placeholder={t("onboarding.agePlaceholder")}
+              unit={t("onboarding.ageUnit")}
             />
           </div>
         )}
@@ -173,47 +182,48 @@ export function OnboardingWizard({
           <div className="space-y-5">
             <div className="grid grid-cols-2 gap-4">
               <NumberField
-                label="Height"
+                label={t("onboarding.height")}
                 value={draft.height_cm}
                 onChange={(v) => patch({ height_cm: v })}
-                placeholder="175"
+                placeholder={t("onboarding.heightPlaceholder")}
                 unit="cm"
               />
               <NumberField
-                label="Weight"
+                label={t("onboarding.weight")}
                 value={draft.weight_kg}
                 onChange={(v) => patch({ weight_kg: v })}
-                placeholder="68"
+                placeholder={t("onboarding.weightPlaceholder")}
                 unit="kg"
               />
             </div>
             <div className="space-y-2">
-              <Label>Body shape</Label>
+              <Label>{t("onboarding.bodyShape")}</Label>
               <BodyShapeSelector
                 value={draft.body_shape}
                 onChange={(v) => patch({ body_shape: v })}
+                labelFor={(shape) => tagLabel(shape.value, locale)}
               />
             </div>
             <div className="grid grid-cols-3 gap-4">
               <SelectField
-                label="Top size"
+                label={t("onboarding.topSize")}
                 placeholder="—"
                 value={draft.clothing_size_top}
                 onChange={(v) => patch({ clothing_size_top: v })}
                 options={TOP_SIZES.map((s) => ({ value: s, label: s }))}
               />
               <SelectField
-                label="Bottom (EU)"
+                label={t("onboarding.bottomSize")}
                 placeholder="—"
                 value={draft.clothing_size_bottom}
                 onChange={(v) => patch({ clothing_size_bottom: v })}
                 options={BOTTOM_SIZES.map((s) => ({ value: s, label: s }))}
               />
               <NumberField
-                label="Shoe (EU)"
+                label={t("onboarding.shoeSize")}
                 value={draft.shoe_size_eu}
                 onChange={(v) => patch({ shoe_size_eu: v })}
-                placeholder="42"
+                placeholder={t("onboarding.shoeSizePlaceholder")}
               />
             </div>
           </div>
@@ -223,7 +233,7 @@ export function OnboardingWizard({
           <div className="space-y-6">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <Label>Default budget per item</Label>
+                <Label>{t("onboarding.defaultBudget")}</Label>
                 <span className="text-sm font-medium">
                   €{draft.budget_max_eur}
                 </span>
@@ -251,23 +261,20 @@ export function OnboardingWizard({
           disabled={step === 0 || saving}
           className={step === 0 ? "invisible" : ""}
         >
-          <ArrowLeft /> Back
+          <ArrowLeft /> {t("onboarding.back")}
         </Button>
 
         {step < STEPS.length - 1 ? (
           <Button onClick={next}>
-            Continue <ArrowRight />
+            {t("onboarding.continueBtn")} <ArrowRight />
           </Button>
         ) : (
           <Button onClick={finish} disabled={saving}>
             {saving ? <Loader2 className="animate-spin" /> : <Check />}
-            Finish
+            {t("onboarding.finish")}
           </Button>
         )}
       </div>
     </div>
   );
 }
-
-/** Re-exported so the page can show a friendly summary if desired. */
-export const ONBOARDING_STEP_TITLES = STEPS.map((s) => s.title);

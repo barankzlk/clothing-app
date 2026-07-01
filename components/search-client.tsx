@@ -8,6 +8,7 @@ import { Search, Heart, SlidersHorizontal, Sparkles, Loader2 } from "lucide-reac
 import { getInitials } from "@/lib/utils";
 import { SHOPS } from "@/lib/shops";
 import type { Profile } from "@/lib/types";
+import { useLocale } from "@/lib/i18n/locale-context";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +18,7 @@ import { ShopSearchCard } from "@/components/shop-search-card";
 const SUGGESTION_DEBOUNCE_MS = 600;
 
 export function SearchClient({ profile }: { profile: Profile }) {
+  const { t, locale } = useLocale();
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
@@ -51,7 +53,11 @@ export function SearchClient({ profile }: { profile: Profile }) {
         const res = await fetch("/api/suggestions", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ tags: selectedTags, gender: profile.gender }),
+          body: JSON.stringify({
+            tags: selectedTags,
+            gender: profile.gender,
+            locale,
+          }),
         });
         const data = await res.json();
         setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []);
@@ -65,13 +71,13 @@ export function SearchClient({ profile }: { profile: Profile }) {
     return () => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current);
     };
-  }, [selectedTags, profile.gender]);
+  }, [selectedTags, profile.gender, locale]);
 
   function runSearch(e?: React.FormEvent) {
     e?.preventDefault();
     const q = query.trim();
     if (!q) {
-      toast.error("Type something to search for.");
+      toast.error(t("search.emptyQuery"));
       return;
     }
     setLastQuery(q);
@@ -96,7 +102,7 @@ export function SearchClient({ profile }: { profile: Profile }) {
             </div>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">
-                {profile.name || "Your profile"}
+                {profile.name || t("profilePage.heading")}
               </p>
               <p className="truncate text-xs font-light text-muted-foreground">
                 {profile.email}
@@ -108,26 +114,32 @@ export function SearchClient({ profile }: { profile: Profile }) {
           <div className="space-y-3 rounded-lg border border-line bg-card p-4">
             <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs font-light text-muted-foreground">
               {profile.clothing_size_top && (
-                <span>Top {profile.clothing_size_top}</span>
+                <span>{t("search.top", { size: profile.clothing_size_top })}</span>
               )}
               {profile.clothing_size_bottom && (
-                <span>Bottom {profile.clothing_size_bottom}</span>
+                <span>
+                  {t("search.bottom", { size: profile.clothing_size_bottom })}
+                </span>
               )}
-              {profile.shoe_size_eu && <span>Shoe EU {profile.shoe_size_eu}</span>}
-              {profile.budget_max_eur && <span>Budget €{profile.budget_max_eur}</span>}
+              {profile.shoe_size_eu && (
+                <span>{t("search.shoe", { size: profile.shoe_size_eu })}</span>
+              )}
+              {profile.budget_max_eur && (
+                <span>{t("search.budget", { amount: profile.budget_max_eur })}</span>
+              )}
             </div>
             <div className="flex flex-col gap-1 pt-1 text-sm">
               <Link
                 href="/profile"
                 className="font-light text-ink underline-offset-4 hover:underline"
               >
-                Edit profile
+                {t("nav.editProfile")}
               </Link>
               <Link
                 href="/favorites"
                 className="inline-flex items-center gap-1.5 font-light text-ink underline-offset-4 hover:underline"
               >
-                <Heart className="size-3.5" /> My favorites
+                <Heart className="size-3.5" /> {t("nav.myFavorites")}
               </Link>
             </div>
           </div>
@@ -140,17 +152,21 @@ export function SearchClient({ profile }: { profile: Profile }) {
               className="flex w-full items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground"
             >
               <span className="flex items-center gap-2">
-                <SlidersHorizontal className="size-3.5" /> Filters
+                <SlidersHorizontal className="size-3.5" /> {t("search.filters")}
                 {selectedTags.length > 0 && (
                   <Badge variant="sage" className="font-light normal-case">
                     {selectedTags.length}
                   </Badge>
                 )}
               </span>
-              <span>{filtersOpen ? "Hide" : "Show"}</span>
+              <span>{filtersOpen ? t("search.hide") : t("search.show")}</span>
             </button>
             {filtersOpen && (
-              <SearchFilters selected={selectedTags} onToggle={toggleTag} />
+              <SearchFilters
+                gender={profile.gender}
+                selected={selectedTags}
+                onToggle={toggleTag}
+              />
             )}
           </div>
         </div>
@@ -164,23 +180,23 @@ export function SearchClient({ profile }: { profile: Profile }) {
             <Input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for anything… e.g. 'linen summer dress' or 'cozy winter coat'"
+              placeholder={t("search.placeholder")}
               className="h-12 pl-9 text-base"
             />
           </div>
           <Button type="submit" size="lg" className="h-12 px-8">
-            <Search /> Find it
+            <Search /> {t("search.findIt")}
           </Button>
         </form>
 
         {(selectedTags.length > 0 || suggestLoading) && (
           <div className="space-y-2 rounded-lg border border-dashed border-line p-4">
             <p className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              <Sparkles className="size-3.5" /> Not sure what to search for?
+              <Sparkles className="size-3.5" /> {t("search.ideasHeading")}
             </p>
             {suggestLoading ? (
               <p className="flex items-center gap-2 text-sm font-light text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" /> Thinking of ideas…
+                <Loader2 className="size-4 animate-spin" /> {t("search.thinking")}
               </p>
             ) : suggestions.length > 0 ? (
               <div className="flex flex-wrap gap-2">
@@ -195,14 +211,14 @@ export function SearchClient({ profile }: { profile: Profile }) {
                       variant="outline"
                       className="cursor-pointer px-3 py-1 text-sm font-light hover:border-ink"
                     >
-                      What about a {idea}?
+                      {t("search.whatAbout", { idea })}
                     </Badge>
                   </button>
                 ))}
               </div>
             ) : (
               <p className="text-sm font-light text-muted-foreground">
-                No ideas yet — try picking a filter above.
+                {t("search.noIdeas")}
               </p>
             )}
           </div>
@@ -211,8 +227,7 @@ export function SearchClient({ profile }: { profile: Profile }) {
         {searched ? (
           <div className="space-y-4">
             <p className="text-sm font-light text-muted-foreground">
-              Live search results for &ldquo;{lastQuery}&rdquo; — each link opens
-              that shop&apos;s own search, so what you see is always in stock.
+              {t("search.liveResults", { query: lastQuery })}
             </p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
               {SHOPS.map((shop) => (
@@ -229,15 +244,15 @@ export function SearchClient({ profile }: { profile: Profile }) {
 }
 
 function SearchIntro({ name }: { name: string | null }) {
+  const { t } = useLocale();
   return (
     <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-line p-10 text-center">
       <Search className="size-7 text-muted-foreground" />
       <h2 className="text-lg font-semibold">
-        {name ? `What are you after, ${name}?` : "What are you after?"}
+        {name ? t("search.introTitleNamed", { name }) : t("search.introTitle")}
       </h2>
       <p className="max-w-sm text-sm font-light text-muted-foreground">
-        Describe a piece in your own words, or pick a filter for ideas. We&apos;ll
-        take you straight to that search on every shop we cover.
+        {t("search.introBody")}
       </p>
     </div>
   );

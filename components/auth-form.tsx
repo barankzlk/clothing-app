@@ -10,11 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 type Mode = "signin" | "signup";
 
 export function AuthForm() {
   const router = useRouter();
+  const { t } = useLocale();
   const [mode, setMode] = useState<Mode>("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -57,7 +59,7 @@ export function AuthForm() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     if (password.length < 6) {
-      toast.error("Password must be at least 6 characters.");
+      toast.error(t("auth.passwordTooShort"));
       return;
     }
     setLoading(true);
@@ -79,12 +81,12 @@ export function AuthForm() {
     }
     // If email confirmation is disabled, a session is returned immediately.
     if (data.session && data.user) {
-      toast.success("Account created. Let's set up your profile.");
+      toast.success(t("auth.accountCreated"));
       await routeAfterAuth(data.user.id);
       return;
     }
     // Otherwise the user must confirm via email first.
-    toast.success("Check your inbox to confirm your email, then sign in.");
+    toast.success(t("auth.confirmEmail"));
     setMode("signin");
   }
 
@@ -95,15 +97,15 @@ export function AuthForm() {
       className="w-full"
     >
       <TabsList className="grid w-full grid-cols-2">
-        <TabsTrigger value="signin">Sign in</TabsTrigger>
-        <TabsTrigger value="signup">Create account</TabsTrigger>
+        <TabsTrigger value="signin">{t("auth.signIn")}</TabsTrigger>
+        <TabsTrigger value="signup">{t("auth.createAccount")}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="signin" className="mt-6">
         <form onSubmit={handleSignIn} className="space-y-4">
           <Field
             id="signin-email"
-            label="Email"
+            label={t("auth.email")}
             type="email"
             value={email}
             onChange={setEmail}
@@ -111,7 +113,7 @@ export function AuthForm() {
           />
           <Field
             id="signin-password"
-            label="Password"
+            label={t("auth.password")}
             type="password"
             value={password}
             onChange={setPassword}
@@ -119,7 +121,7 @@ export function AuthForm() {
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="animate-spin" />}
-            Sign in
+            {t("auth.signIn")}
           </Button>
         </form>
       </TabsContent>
@@ -128,7 +130,7 @@ export function AuthForm() {
         <form onSubmit={handleSignUp} className="space-y-4">
           <Field
             id="signup-email"
-            label="Email"
+            label={t("auth.email")}
             type="email"
             value={email}
             onChange={setEmail}
@@ -136,16 +138,16 @@ export function AuthForm() {
           />
           <Field
             id="signup-password"
-            label="Password"
+            label={t("auth.password")}
             type="password"
             value={password}
             onChange={setPassword}
             autoComplete="new-password"
-            hint="At least 6 characters."
+            hint={t("auth.passwordHint")}
           />
           <Button type="submit" className="w-full" disabled={loading}>
             {loading && <Loader2 className="animate-spin" />}
-            Create account
+            {t("auth.createAccount")}
           </Button>
         </form>
       </TabsContent>

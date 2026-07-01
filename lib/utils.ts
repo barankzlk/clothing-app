@@ -16,23 +16,30 @@ export function getInitials(nameOrEmail: string | null | undefined): string {
   return (parts[0]![0]! + parts[parts.length - 1]![0]!).toUpperCase();
 }
 
-/** Human-readable "X days ago" style relative time. */
-export function timeAgo(date: string | Date | null | undefined): string {
-  if (!date) return "never";
+/** Human-readable "X days ago" style relative time, translated via `t`. */
+export function timeAgo(
+  date: string | Date | null | undefined,
+  t: (key: string, vars?: Record<string, string | number>) => string,
+): string {
+  if (!date) return t("time.never");
   const then = typeof date === "string" ? new Date(date) : date;
   const seconds = Math.floor((Date.now() - then.getTime()) / 1000);
-  if (Number.isNaN(seconds)) return "never";
-  if (seconds < 60) return "just now";
+  if (Number.isNaN(seconds)) return t("time.never");
+  if (seconds < 60) return t("time.justNow");
   const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  if (minutes < 60)
+    return t(minutes === 1 ? "time.minuteAgo" : "time.minutesAgo", { count: minutes });
   const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  if (hours < 24)
+    return t(hours === 1 ? "time.hourAgo" : "time.hoursAgo", { count: hours });
   const days = Math.floor(hours / 24);
-  if (days < 30) return `${days} day${days === 1 ? "" : "s"} ago`;
+  if (days < 30)
+    return t(days === 1 ? "time.dayAgo" : "time.daysAgo", { count: days });
   const months = Math.floor(days / 30);
-  if (months < 12) return `${months} month${months === 1 ? "" : "s"} ago`;
+  if (months < 12)
+    return t(months === 1 ? "time.monthAgo" : "time.monthsAgo", { count: months });
   const years = Math.floor(months / 12);
-  return `${years} year${years === 1 ? "" : "s"} ago`;
+  return t(years === 1 ? "time.yearAgo" : "time.yearsAgo", { count: years });
 }
 
 /** Turn a snake_case tag into a readable label, e.g. "old_money" -> "Old Money". */

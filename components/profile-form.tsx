@@ -16,6 +16,8 @@ import {
 } from "@/lib/style-tags";
 import type { Profile } from "@/lib/types";
 import { timeAgo } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/locale-context";
+import { tagLabel } from "@/lib/i18n/tag-labels";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -58,6 +60,7 @@ function Section({
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const router = useRouter();
+  const { t, locale } = useLocale();
   const [saving, setSaving] = useState(false);
   const [updatedAt, setUpdatedAt] = useState(profile.updated_at);
   const initial = useMemo(() => draftFromProfile(profile), [profile]);
@@ -88,85 +91,89 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       return;
     }
     if (data?.updated_at) setUpdatedAt(data.updated_at);
-    toast.success("Profile saved.");
+    toast.success(t("profileForm.saved"));
     router.refresh();
   }
 
   return (
     <div className="space-y-6">
       <p className="text-xs font-light text-muted-foreground">
-        Profile last updated: {timeAgo(updatedAt)}
+        {t("profileForm.lastUpdated", { time: timeAgo(updatedAt, t) })}
       </p>
 
-      <Section title="About you">
+      <Section title={t("profileForm.sectionAboutYou")}>
         <div className="space-y-2">
-          <Label htmlFor="p-name">Name</Label>
+          <Label htmlFor="p-name">{t("onboarding.name")}</Label>
           <Input
             id="p-name"
             value={draft.name}
             onChange={(e) => patch({ name: e.target.value })}
-            placeholder="Your name"
+            placeholder={t("onboarding.namePlaceholder")}
           />
         </div>
         <div className="grid grid-cols-2 gap-4">
           <SelectField
-            label="Gender"
-            placeholder="Select…"
+            label={t("onboarding.gender")}
+            placeholder={t("onboarding.genderPlaceholder")}
             value={draft.gender}
             onChange={(v) => patch({ gender: v })}
-            options={GENDERS}
+            options={GENDERS.map((g) => ({
+              value: g.value,
+              label: tagLabel(g.value, locale),
+            }))}
           />
           <NumberField
-            label="Age"
+            label={t("onboarding.age")}
             value={draft.age}
             onChange={(v) => patch({ age: v })}
-            unit="yrs"
+            unit={t("onboarding.ageUnit")}
           />
         </div>
       </Section>
 
       <Section
-        title="Measurements"
-        description="Used to keep results in your size."
+        title={t("profileForm.sectionMeasurements")}
+        description={t("profileForm.sectionMeasurementsDesc")}
       >
         <div className="grid grid-cols-2 gap-4">
           <NumberField
-            label="Height"
+            label={t("onboarding.height")}
             value={draft.height_cm}
             onChange={(v) => patch({ height_cm: v })}
             unit="cm"
           />
           <NumberField
-            label="Weight"
+            label={t("onboarding.weight")}
             value={draft.weight_kg}
             onChange={(v) => patch({ weight_kg: v })}
             unit="kg"
           />
         </div>
         <div className="space-y-2">
-          <Label>Body shape</Label>
+          <Label>{t("onboarding.bodyShape")}</Label>
           <BodyShapeSelector
             value={draft.body_shape}
             onChange={(v) => patch({ body_shape: v })}
+            labelFor={(shape) => tagLabel(shape.value, locale)}
           />
         </div>
         <div className="grid grid-cols-3 gap-4">
           <SelectField
-            label="Top size"
+            label={t("onboarding.topSize")}
             placeholder="—"
             value={draft.clothing_size_top}
             onChange={(v) => patch({ clothing_size_top: v })}
             options={TOP_SIZES.map((s) => ({ value: s, label: s }))}
           />
           <SelectField
-            label="Bottom (EU)"
+            label={t("onboarding.bottomSize")}
             placeholder="—"
             value={draft.clothing_size_bottom}
             onChange={(v) => patch({ clothing_size_bottom: v })}
             options={BOTTOM_SIZES.map((s) => ({ value: s, label: s }))}
           />
           <NumberField
-            label="Shoe (EU)"
+            label={t("onboarding.shoeSize")}
             value={draft.shoe_size_eu}
             onChange={(v) => patch({ shoe_size_eu: v })}
           />
@@ -174,12 +181,12 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       </Section>
 
       <Section
-        title="Budget"
-        description="Your default per-item budget — you can still adjust it per search."
+        title={t("profileForm.sectionBudget")}
+        description={t("profileForm.sectionBudgetDesc")}
       >
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <Label>Default budget per item</Label>
+            <Label>{t("onboarding.defaultBudget")}</Label>
             <span className="text-sm font-medium">
               €{draft.budget_max_eur}
             </span>
@@ -197,12 +204,12 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       <div className="sticky bottom-0 -mx-1 flex items-center justify-end gap-3 border-t border-line bg-canvas/90 px-1 py-4 backdrop-blur">
         {dirty && (
           <span className="text-xs font-light text-muted-foreground">
-            Unsaved changes
+            {t("profileForm.unsavedChanges")}
           </span>
         )}
         <Button onClick={save} disabled={saving || !dirty}>
           {saving && <Loader2 className="animate-spin" />}
-          Save changes
+          {t("profileForm.saveChanges")}
         </Button>
       </div>
     </div>

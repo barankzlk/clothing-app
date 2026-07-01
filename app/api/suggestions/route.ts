@@ -24,7 +24,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ suggestions: [] });
   }
 
-  let body: { tags?: unknown; gender?: unknown };
+  let body: { tags?: unknown; gender?: unknown; locale?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -38,6 +38,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ suggestions: [] });
   }
   const gender = typeof body.gender === "string" ? body.gender : null;
+  const locale = typeof body.locale === "string" ? body.locale : null;
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -46,7 +47,7 @@ export async function POST(request: Request) {
     const message = await anthropic.messages.create({
       model: SUGGESTION_MODEL,
       max_tokens: 300,
-      system: buildSuggestionPrompt(tags, gender),
+      system: buildSuggestionPrompt(tags, gender, locale),
       messages: [{ role: "user", content: "Suggest items." }],
     });
     for (const block of message.content) {

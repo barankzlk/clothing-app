@@ -6,8 +6,10 @@ import { ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Shop } from "@/lib/shops";
+import { useLocale } from "@/lib/i18n/locale-context";
 
 export function ShopSearchCard({ shop, query }: { shop: Shop; query: string }) {
+  const { t } = useLocale();
   const [logoFailed, setLogoFailed] = useState(false);
   const logoUrl = `https://logo.clearbit.com/${shop.domain}`;
 
@@ -31,12 +33,12 @@ export function ShopSearchCard({ shop, query }: { shop: Shop; query: string }) {
       <div className="space-y-1">
         <h3 className="text-sm font-semibold">{shop.name}</h3>
         <p className="text-xs font-light text-muted-foreground">
-          See results for &ldquo;{query}&rdquo;
+          {t("shopCard.resultsFor", { query })}
         </p>
       </div>
       <Button variant="default" size="sm" className="w-full" asChild>
         <a href={shop.searchUrl(query)} target="_blank" rel="noopener noreferrer">
-          <ExternalLink className="size-4" /> Search {shop.name}
+          <ExternalLink className="size-4" /> {t("shopCard.search")}
         </a>
       </Button>
     </Card>

@@ -4,43 +4,83 @@
  * with the database CHECK constraints in supabase/migrations.
  */
 
-export const AESTHETIC_STYLES = [
-  "minimalist",
+/**
+ * Search filters are gender-based: a female profile sees a different
+ * aesthetic/occasion/fabric-fit set than a male profile. Non-binary /
+ * unspecified profiles get the union of both, deduped, so nobody sees an
+ * empty filter panel.
+ */
+export const FEMALE_AESTHETICS = [
+  "clean_girl",
   "old_money",
-  "streetwear",
   "cottagecore",
   "dark_academia",
-  "clean_girl",
   "boho",
   "preppy",
   "y2k",
+  "minimalist",
+  "streetwear",
   "business_casual",
   "athleisure",
   "avant_garde",
+  "coastal_grandmother",
+  "quiet_luxury",
+  "mob_wife",
+  "ballet_core",
+  "coquette",
+  "dark_feminine",
+  "indie_sleaze",
 ] as const;
 
-export const VIBE_TAGS = [
+export const MALE_AESTHETICS = [
+  "minimalist",
+  "streetwear",
+  "old_money",
+  "business_casual",
+  "athleisure",
+  "techwear",
+  "gorpcore",
+  "smart_casual",
+  "workwear",
+  "preppy",
+  "dark_academia",
+  "skater",
+  "coastal",
+] as const;
+
+export const FEMALE_OCCASIONS = [
   "casual_everyday",
   "date_night",
   "work_office",
+  "girls_night",
   "festival",
   "weekend_chill",
   "formal_event",
   "travel",
+  "brunch",
+  "wedding_guest",
 ] as const;
 
-export const FABRIC_FIT_TAGS = [
+export const MALE_OCCASIONS = [
+  "casual_everyday",
+  "work_office",
+  "date_night",
+  "night_out",
+  "festival",
+  "weekend_chill",
+  "formal_event",
+  "travel",
+  "gym",
+  "sports",
+] as const;
+
+export const FEMALE_FABRIC_FIT = [
   "oversized",
   "fitted",
   "flowy",
   "structured",
   "breathable",
   "sustainable",
-  "vintage_inspired",
-] as const;
-
-/** Fabric preferences (materials) for the search filter panel. */
-export const FABRIC_PREFERENCES = [
   "cotton",
   "linen",
   "silk",
@@ -48,10 +88,27 @@ export const FABRIC_PREFERENCES = [
   "cashmere",
   "denim",
   "leather",
-  "no_synthetic",
+  "sheer",
+  "bodycon",
+  "wrap",
 ] as const;
 
-export type FabricPreference = (typeof FABRIC_PREFERENCES)[number];
+export const MALE_FABRIC_FIT = [
+  "oversized",
+  "slim_fit",
+  "regular_fit",
+  "relaxed_fit",
+  "structured",
+  "breathable",
+  "sustainable",
+  "cotton",
+  "linen",
+  "wool",
+  "denim",
+  "leather",
+  "technical_fabric",
+  "fleece",
+] as const;
 
 export const COLORS = [
   "black",
@@ -66,18 +123,42 @@ export const COLORS = [
 
 export type ColorTag = (typeof COLORS)[number];
 
+function dedupe(tags: readonly string[]): string[] {
+  return Array.from(new Set(tags));
+}
+
 /**
- * Filter groups shown on the search page. Selecting any of these drives the
- * "not sure what to search for?" suggestions — they're per-search, ephemeral,
- * and never saved to the profile.
+ * Filter groups shown on the search page, chosen by profile gender. Selecting
+ * any tag drives the "not sure what to search for?" suggestions — filters are
+ * per-search, ephemeral, and never saved to the profile.
  */
-export const SEARCH_FILTER_GROUPS = [
-  { label: "Aesthetic", tags: AESTHETIC_STYLES },
-  { label: "Occasion", tags: VIBE_TAGS },
-  { label: "Fabric & Fit", tags: FABRIC_FIT_TAGS },
-  { label: "Materials", tags: FABRIC_PREFERENCES },
-  { label: "Colors", tags: COLORS },
-] as const;
+export function getSearchFilterGroups(gender: string | null) {
+  const aesthetics =
+    gender === "male"
+      ? MALE_AESTHETICS
+      : gender === "female"
+        ? FEMALE_AESTHETICS
+        : dedupe([...FEMALE_AESTHETICS, ...MALE_AESTHETICS]);
+  const occasions =
+    gender === "male"
+      ? MALE_OCCASIONS
+      : gender === "female"
+        ? FEMALE_OCCASIONS
+        : dedupe([...FEMALE_OCCASIONS, ...MALE_OCCASIONS]);
+  const fabricFit =
+    gender === "male"
+      ? MALE_FABRIC_FIT
+      : gender === "female"
+        ? FEMALE_FABRIC_FIT
+        : dedupe([...FEMALE_FABRIC_FIT, ...MALE_FABRIC_FIT]);
+
+  return [
+    { key: "groupAesthetic", tags: aesthetics },
+    { key: "groupOccasion", tags: occasions },
+    { key: "groupFabricFit", tags: fabricFit },
+    { key: "groupColors", tags: COLORS },
+  ] as const;
+}
 
 export const GENDERS = [
   { value: "female", label: "Female" },

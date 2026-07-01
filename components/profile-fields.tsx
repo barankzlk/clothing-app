@@ -80,10 +80,12 @@ export function PillMultiSelect({
   options,
   value,
   onToggle,
+  labelFor = humanizeTag,
 }: {
   options: readonly string[];
   value: string[];
   onToggle: (tag: string) => void;
+  labelFor?: (tag: string) => string;
 }) {
   return (
     <div className="flex flex-wrap gap-2">
@@ -104,7 +106,7 @@ export function PillMultiSelect({
                 active ? "" : "hover:border-ink",
               )}
             >
-              {humanizeTag(option)}
+              {labelFor(option)}
             </Badge>
           </button>
         );
@@ -117,9 +119,11 @@ export function PillMultiSelect({
 export function BodyShapeSelector({
   value,
   onChange,
+  labelFor = (shape) => shape.label,
 }: {
   value: string;
   onChange: (v: string) => void;
+  labelFor?: (shape: (typeof BODY_SHAPES)[number]) => string;
 }) {
   return (
     <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
@@ -142,7 +146,7 @@ export function BodyShapeSelector({
               {shape.glyph}
             </span>
             <span className="text-xs font-light text-muted-foreground">
-              {shape.label}
+              {labelFor(shape)}
             </span>
           </button>
         );
