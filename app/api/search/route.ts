@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getJson } from "serpapi";
 
 import { createClient } from "@/lib/supabase/server";
-import { getShopsForGender, type Shop } from "@/lib/shops";
+import { getShopsForGender, splitShops, findMatchingShop, type Shop } from "@/lib/shops";
 import type { SearchProduct } from "@/lib/types";
 import {
   SEARCH_QUERY_MODEL,
@@ -15,6 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 const RESULTS_PER_SHOP = 2;
+const GENERAL_SEARCH_NUM = 30;
 
 type SerpShoppingResult = {
   title?: string;
@@ -28,6 +29,10 @@ type SerpShoppingResult = {
   reviews?: number;
   product_id?: string;
 };
+
+type SearchOutcome =
+  | { kind: "general"; data: Record<string, unknown> }
+  | { kind: "niche"; shop: Shop; data: Record<string, unknown> };
 
 function toProduct(result: SerpShoppingResult, shop: Shop): SearchProduct | null {
   const url = result.link || result.product_link;
@@ -106,6 +111,7 @@ export async function POST(request: Request) {
     gender?: unknown;
     filters?: unknown;
     budgetMax?: unknown;
+    shopLimit?: unknown;
   };
   try {
     body = await request.json();
@@ -157,14 +163,39 @@ export async function POST(request: Request) {
     }
   }
 
-  // Step 2 — gender-based shop list.
-  const shops = getShopsForGender(gender);
+  // Step 2 — gender-based shop list, capped by the user's shop-limit slider,
+  // then split into the big/mainstream shops (covered by one general search)
+  // and the niche shops (still need a targeted query each, since they rarely
+  // surface in a general Google Shopping search).
+  const allShops = getShopsForGender(gender);
+  const shopLimit =
+    typeof body.shopLimit === "number" && Number.isFinite(body.shopLimit)
+      ? Math.max(1, Math.min(Math.floor(body.shopLimit), allShops.length))
+      : allShops.length;
+  const shops = allShops.slice(0, shopLimit);
+  const { big: bigShops, niche: nicheShops } = splitShops(shops);
+
   const genderWord = gender === "male" ? "herren" : "damen";
 
-  // Step 3 — one Google Shopping search per shop, in parallel.
-  const settled = await Promise.allSettled(
-    shops.map(async (shop) => {
-      const data = await getJson({
+  // Step 3 — one general search covers every big shop at once; one targeted
+  // search per niche shop. All in parallel.
+  const searchPromises: Promise<SearchOutcome>[] = [];
+  if (bigShops.length > 0) {
+    searchPromises.push(
+      getJson({
+        engine: "google_shopping",
+        api_key: process.env.SERPAPI_KEY,
+        q: `${baseTerm} ${genderWord}`,
+        gl: "de",
+        hl: "de",
+        num: GENERAL_SEARCH_NUM,
+        currency: "EUR",
+      }).then((data) => ({ kind: "general" as const, data })),
+    );
+  }
+  for (const shop of nicheShops) {
+    searchPromises.push(
+      getJson({
         engine: "google_shopping",
         api_key: process.env.SERPAPI_KEY,
         q: `${baseTerm} ${shop.name} ${genderWord}`,
@@ -172,54 +203,77 @@ export async function POST(request: Request) {
         hl: "de",
         num: 5,
         currency: "EUR",
-      });
-      return { shop, data };
-    }),
-  );
+      }).then((data) => ({ kind: "niche" as const, shop, data })),
+    );
+  }
 
-  // Step 4 — parse, budget-filter, dedupe by URL, shuffle.
+  const settled = await Promise.allSettled(searchPromises);
+
+  // Step 4 — parse, verify each result actually belongs to one of our
+  // shops, budget-filter, dedupe by URL, cap per shop, shuffle.
   const results: SearchProduct[] = [];
   const seenUrls = new Set<string>();
+  const takenPerShop = new Map<string, number>();
   const shopErrors: string[] = [];
+
+  function tryAdd(result: SerpShoppingResult, shop: Shop) {
+    if ((takenPerShop.get(shop.name) ?? 0) >= RESULTS_PER_SHOP) return;
+    const product = toProduct(result, shop);
+    if (!product || seenUrls.has(product.url)) return;
+    const price = extractPriceValue(result);
+    if (budgetMax != null && price != null && price > budgetMax) return;
+    seenUrls.add(product.url);
+    results.push(product);
+    takenPerShop.set(shop.name, (takenPerShop.get(shop.name) ?? 0) + 1);
+  }
 
   for (const outcome of settled) {
     if (outcome.status !== "fulfilled") {
       shopErrors.push(describeSerpError(outcome.reason));
       continue;
     }
-    const { shop, data } = outcome.value;
-    if (typeof data.error === "string") {
-      shopErrors.push(data.error);
+    const outcomeValue = outcome.value;
+    if (typeof outcomeValue.data.error === "string") {
+      shopErrors.push(outcomeValue.data.error);
       continue;
     }
-    const shoppingResults: SerpShoppingResult[] = Array.isArray(data.shopping_results)
-      ? data.shopping_results
+    const shoppingResults: SerpShoppingResult[] = Array.isArray(
+      outcomeValue.data.shopping_results,
+    )
+      ? (outcomeValue.data.shopping_results as SerpShoppingResult[])
       : [];
 
-    let taken = 0;
-    for (const result of shoppingResults) {
-      if (taken >= RESULTS_PER_SHOP) break;
-      const product = toProduct(result, shop);
-      if (!product || seenUrls.has(product.url)) continue;
-      const price = extractPriceValue(result);
-      if (budgetMax != null && price != null && price > budgetMax) continue;
-      seenUrls.add(product.url);
-      results.push(product);
-      taken++;
+    if (outcomeValue.kind === "general") {
+      // Only keep results that actually match one of our known big shops —
+      // discard anything from a shop we didn't ask for.
+      for (const result of shoppingResults) {
+        const matched = findMatchingShop(result, bigShops);
+        if (matched) tryAdd(result, matched);
+      }
+    } else {
+      // Verify this niche result really is the shop we searched for.
+      for (const result of shoppingResults) {
+        const matched = findMatchingShop(result, [outcomeValue.shop]);
+        if (matched) tryAdd(result, outcomeValue.shop);
+      }
     }
   }
 
-  // Every shop errored (bad key, exhausted quota, SerpAPI outage) — surface
-  // a real error instead of silently reporting zero results.
-  if (results.length === 0 && shops.length > 0 && shopErrors.length === shops.length) {
-    console.error("All SerpAPI shop searches failed:", shopErrors[0]);
+  // Every search errored (bad key, exhausted quota, SerpAPI outage) —
+  // surface a real error instead of silently reporting zero results.
+  const totalSearches = searchPromises.length;
+  if (results.length === 0 && totalSearches > 0 && shopErrors.length === totalSearches) {
+    console.error("All SerpAPI searches failed:", shopErrors[0]);
     return NextResponse.json(
       { error: "Search provider error. Check the SerpAPI key and plan quota." },
       { status: 502 },
     );
   }
   if (shopErrors.length > 0) {
-    console.error(`${shopErrors.length}/${shops.length} SerpAPI shop searches failed:`, shopErrors[0]);
+    console.error(
+      `${shopErrors.length}/${totalSearches} SerpAPI searches failed:`,
+      shopErrors[0],
+    );
   }
 
   const shuffled = shuffle(results);

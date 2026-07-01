@@ -8,16 +8,20 @@ import {
   Sparkles,
   Loader2,
   Clock,
+  Store,
   X,
 } from "lucide-react";
 
 import type { Profile, SavedSearch, SearchProduct } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/lib/i18n/locale-context";
+import { FEMALE_SHOPS, MALE_SHOPS } from "@/lib/shops";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
+import { Slider } from "@/components/ui/slider";
 import { SearchFilters } from "@/components/search-filters";
 import { ProductSwipeDeck } from "@/components/product-swipe-deck";
 
@@ -41,6 +45,10 @@ export function SearchClient({
   const [lastQuery, setLastQuery] = useState("");
   const [searchNonce, setSearchNonce] = useState(0);
   const [results, setResults] = useState<SearchProduct[]>([]);
+
+  const maxShops =
+    profile.gender === "male" ? MALE_SHOPS.length : FEMALE_SHOPS.length;
+  const [shopLimit, setShopLimit] = useState(maxShops);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -161,6 +169,7 @@ export function SearchClient({
           gender: profile.gender,
           filters,
           budgetMax: profile.budget_max_eur,
+          shopLimit,
         }),
       });
       const data = await res.json();
@@ -251,6 +260,25 @@ export function SearchClient({
           <Search /> {t("search.findIt")}
         </Button>
       </form>
+
+      {/* Row 1b: how many shops to search — mainly a cost/testing control */}
+      <Card className="space-y-2 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <Label className="flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+            <Store className="size-3.5" /> {t("search.shopLimitLabel")}
+          </Label>
+          <span className="text-sm font-medium text-ink">
+            {t("search.shopLimitValue", { count: shopLimit, total: maxShops })}
+          </span>
+        </div>
+        <Slider
+          min={1}
+          max={maxShops}
+          step={1}
+          value={[shopLimit]}
+          onValueChange={([v]) => setShopLimit(v ?? maxShops)}
+        />
+      </Card>
 
       {/* Row 2: filter-driven idea suggestions */}
       {(selectedTags.length > 0 || suggestLoading) && (

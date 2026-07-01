@@ -127,6 +127,8 @@ export const en = {
     recentSearches: "Recent Searches",
     clearHistory: "Clear history",
     removeSearchAria: "Remove this search",
+    shopLimitLabel: "Shops to search",
+    shopLimitValue: "{count} of {total}",
   },
   swipe: {
     progress: "{current} / {total} products",
@@ -289,6 +291,8 @@ export const de: Dict = {
     recentSearches: "Letzte Suchen",
     clearHistory: "Verlauf löschen",
     removeSearchAria: "Diese Suche entfernen",
+    shopLimitLabel: "Zu durchsuchende Shops",
+    shopLimitValue: "{count} von {total}",
   },
   swipe: {
     progress: "{current} / {total} Produkte",
@@ -449,6 +453,8 @@ export const pt: Dict = {
     recentSearches: "Buscas Recentes",
     clearHistory: "Limpar histórico",
     removeSearchAria: "Remover esta busca",
+    shopLimitLabel: "Lojas para pesquisar",
+    shopLimitValue: "{count} de {total}",
   },
   swipe: {
     progress: "{current} / {total} produtos",
