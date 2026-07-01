@@ -2,103 +2,26 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 
 import { createClient } from "@/lib/supabase/server";
+import {
+  SEARCH_MODEL,
+  buildSystemPrompt,
+  extractJson,
+  normalizeProducts,
+} from "@/lib/search-prompt";
 import { BUDGET_MAX, BUDGET_MIN } from "@/lib/style-tags";
-import { clearbitLogo } from "@/lib/shops";
-import { humanizeTag } from "@/lib/utils";
-import type { SearchProduct } from "@/lib/types";
 
+// Web search + model reasoning can take a while; give it room.
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
-const MODEL = "claude-haiku-4-5-20251001";
-// 20 products at ~7 fields each (incl. two real URLs) runs ~2000+ tokens on
-// its own, before any web-search overhead — 1500 truncated the JSON almost
-// every time. This ceiling only caps spend on a response that would otherwise
-// run away; billing is per token actually generated, not the ceiling, so this
-// isn't a bigger bill on a normal search — it's the difference between a
-// truncated dead end and a complete one.
+// 16 products at ~7 fields each (incl. two real URLs) already runs ~1800+
+// tokens on its own, before any web-search overhead. This ceiling only caps
+// spend on a response that would otherwise run away — billing is per token
+// actually generated, not the ceiling, so this isn't a bigger bill on a
+// normal search; it's the difference between a truncated dead end (which
+// still costs the full 1500 tokens for zero usable results) and a complete,
+// parseable response.
 const MAX_TOKENS = 4000;
-const MAX_RESULTS = 24;
-
-const SYSTEM_PROMPT =
-  "You are a fashion shopping assistant. Search the web and return ONLY real in-stock products from these shops that ship to Germany: H&M, Zara, ASOS, Oh Polly, Club L London, Massimo Dutti, Mango, Meshki, COS, House of CB, Sézane, Toteme, Loulou de Saison. ALWAYS return minimum 20 products. Never invent URLs — only use exact URLs found in search results. Return ONLY JSON: { results: [{ title, shop, shop_logo, price, url, image_url, reason }], summary }";
-
-function toProduct(r: Record<string, unknown>): SearchProduct | null {
-  const url = typeof r.url === "string" ? r.url.trim() : "";
-  const title = typeof r.title === "string" ? r.title.trim() : "";
-  if (!title || !/^https?:\/\//i.test(url)) return null;
-  const shop = typeof r.shop === "string" && r.shop.trim() ? r.shop.trim() : "Shop";
-  return {
-    title,
-    shop,
-    // Computed deterministically from our own shop -> domain map rather than
-    // trusting the model's guess, so the logo fallback always resolves.
-    shop_logo: clearbitLogo(shop),
-    price: typeof r.price === "string" ? r.price.trim() : "",
-    url,
-    image_url:
-      typeof r.image_url === "string" && /^https?:\/\//i.test(r.image_url)
-        ? r.image_url.trim()
-        : null,
-    reason: typeof r.reason === "string" ? r.reason.trim() : "",
-  };
-}
-
-/**
- * Parse products (and the summary) from the model's text. Tries a full JSON
- * parse first, then salvages individual product objects so a response
- * truncated by max_tokens still yields the complete products it emitted.
- */
-function parseSearchResponse(text: string): { results: SearchProduct[]; summary: string } {
-  const out: SearchProduct[] = [];
-  const seen = new Set<string>();
-  let summary = "";
-
-  const push = (r: Record<string, unknown>) => {
-    const p = toProduct(r);
-    if (p && !seen.has(p.url)) {
-      seen.add(p.url);
-      out.push(p);
-    }
-  };
-
-  const fence = text.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const first = text.indexOf("{");
-  const last = text.lastIndexOf("}");
-  const candidates = [
-    fence?.[1]?.trim(),
-    first !== -1 && last > first ? text.slice(first, last + 1) : null,
-  ].filter(Boolean) as string[];
-
-  for (const c of candidates) {
-    try {
-      const obj = JSON.parse(c) as { results?: unknown; summary?: unknown };
-      const arr = Array.isArray(obj.results) ? obj.results : [];
-      for (const item of arr) {
-        if (item && typeof item === "object") push(item as Record<string, unknown>);
-      }
-      if (typeof obj.summary === "string") summary = obj.summary;
-      if (out.length > 0) break;
-    } catch {
-      // fall through to salvage
-    }
-  }
-
-  if (out.length === 0) {
-    const objects = text.match(/\{[^{}]*"url"\s*:\s*"https?:\/\/[^"]+"[^{}]*\}/gi);
-    if (objects) {
-      for (const o of objects) {
-        try {
-          push(JSON.parse(o) as Record<string, unknown>);
-        } catch {
-          // skip malformed fragment
-        }
-      }
-    }
-  }
-
-  return { results: out.slice(0, MAX_RESULTS), summary };
-}
 
 export async function POST(request: Request) {
   // 1. Require an authenticated user.
@@ -109,6 +32,7 @@ export async function POST(request: Request) {
   if (!user) {
     return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
   }
+
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
       { error: "Search is not configured. Missing ANTHROPIC_API_KEY." },
@@ -117,7 +41,7 @@ export async function POST(request: Request) {
   }
 
   // 2. Parse the request body. `userProfile` is accepted per the API contract
-  // but not trusted for sizing — sizes/budget are always re-read from the
+  // but not trusted for sizing — the full profile is always re-read from the
   // database below so a tampered client payload can't skew results.
   let body: {
     query?: unknown;
@@ -142,43 +66,40 @@ export async function POST(request: Request) {
     ? body.activeFilters.filter((f): f is string => typeof f === "string")
     : [];
 
-  // 3. Server-authoritative profile lookup for sizes + budget.
+  // 3. Load the caller's full profile from the database (don't trust client copy).
   const { data: profile } = await supabase
     .from("profiles")
-    .select("clothing_size_top, clothing_size_bottom, shoe_size_eu, budget_max_eur")
+    .select("*")
     .eq("id", user.id)
     .maybeSingle();
 
+  if (!profile) {
+    return NextResponse.json(
+      { error: "Complete your profile before searching." },
+      { status: 400 },
+    );
+  }
+
+  // Budget: request override → profile default → sane fallback. Clamped.
   const requested = Number(body.budgetMax);
-  const fallback = profile?.budget_max_eur ?? 150;
+  const fallback = profile.budget_max_eur ?? 150;
   const budgetMax = Math.min(
     BUDGET_MAX,
     Math.max(BUDGET_MIN, Number.isFinite(requested) ? requested : fallback),
   );
 
-  const sizes =
-    [
-      profile?.clothing_size_top ? `top ${profile.clothing_size_top}` : null,
-      profile?.clothing_size_bottom ? `bottom ${profile.clothing_size_bottom}` : null,
-      profile?.shoe_size_eu ? `shoe EU ${profile.shoe_size_eu}` : null,
-    ]
-      .filter(Boolean)
-      .join(", ") || "not specified";
+  const systemPrompt = buildSystemPrompt({ profile, budgetMax, activeFilters });
 
-  const filters =
-    activeFilters.length > 0 ? activeFilters.map(humanizeTag).join(", ") : "none";
-
-  const userMessage =
-    `Find ${query}, size ${sizes}, budget €${budgetMax}, filters: ${filters}. Germany shipping required.\n\n` +
-    `Run these 2 web searches:\n` +
-    `1. "${query} site:asos.com OR site:hm.com OR site:zara.com OR site:mango.com OR site:cos.com"\n` +
-    `2. "${query} site:ohpolly.com OR site:meshki.com OR site:massimodutti.com OR site:sezane.com OR site:clubllondon.com OR site:houseofcb.com"\n\n` +
-    `Output compact JSON with no extra whitespace or line breaks so more products fit in the response.`;
-
+  // 4. Call Anthropic with the web search tool enabled.
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   try {
-    const messages: Anthropic.MessageParam[] = [{ role: "user", content: userMessage }];
+    const messages: Anthropic.MessageParam[] = [
+      {
+        role: "user",
+        content: `Find clothing for this request: "${query}". Remember to return only the JSON object described in your instructions.`,
+      },
+    ];
     let text = "";
     let stopReason: string | null = null;
     let searchCount = 0;
@@ -187,9 +108,9 @@ export async function POST(request: Request) {
     // Resume across web-search `pause_turn` boundaries (up to 3 hops).
     for (let hop = 0; hop < 3; hop++) {
       const message = await anthropic.messages.create({
-        model: MODEL,
+        model: SEARCH_MODEL,
         max_tokens: MAX_TOKENS,
-        system: SYSTEM_PROMPT,
+        system: systemPrompt,
         tools: [{ type: "web_search_20250305", name: "web_search", max_uses: 2 }],
         messages,
       });
@@ -200,8 +121,6 @@ export async function POST(request: Request) {
         }
         if (block.type === "web_search_tool_result") {
           const content = block.content as unknown;
-          // A search error comes back as a single object (not an array) with
-          // an error_code, per the API's server-tool-error shape.
           if (content && !Array.isArray(content) && typeof content === "object") {
             const err = content as { error_code?: string };
             if (err.error_code) searchErrors.push(err.error_code);
@@ -216,7 +135,9 @@ export async function POST(request: Request) {
       break;
     }
 
-    const { results, summary } = parseSearchResponse(text);
+    const parsed = extractJson(text);
+    const { results, summary } = normalizeProducts(parsed, text);
+
     if (results.length === 0) {
       const debug = {
         stopReason,
@@ -231,6 +152,7 @@ export async function POST(request: Request) {
       // console without needing to open the Vercel dashboard.
       return NextResponse.json({ results, summary, debug });
     }
+
     return NextResponse.json({ results, summary });
   } catch (err) {
     const detail =
@@ -241,7 +163,7 @@ export async function POST(request: Request) {
           : "Unknown error";
     console.error("Anthropic search error:", detail);
     return NextResponse.json(
-      { error: "The search couldn't complete. Please try again." },
+      { error: "The stylist couldn't complete the search. Please try again." },
       { status: 502 },
     );
   }
