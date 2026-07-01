@@ -23,14 +23,14 @@ export const FEMALE_SHOPS: Shop[] = [
   ZARA,
   ASOS,
   { name: "Oh Polly", domain: "ohpolly.com" },
-  { name: "Club L London", domain: "clubllondon.com" },
+  { name: "Club L London", domain: "clubllondon.de" },
   MASSIMO_DUTTI,
   MANGO,
-  { name: "Meshki", domain: "meshki.com" },
+  { name: "Meshki", domain: "meshki.us" },
   COS,
   { name: "House of CB", domain: "houseofcb.com" },
   { name: "Sézane", domain: "sezane.com" },
-  { name: "Toteme", domain: "toteme-studio.com" },
+  { name: "Toteme", domain: "toteme.com" },
   { name: "Loulou de Saison", domain: "louloudesaison.com" },
   UNIQLO,
 ];
@@ -48,31 +48,6 @@ export const MALE_SHOPS: Shop[] = [
 
 export function getShopsForGender(gender: string | null | undefined): Shop[] {
   return gender === "male" ? MALE_SHOPS : FEMALE_SHOPS;
-}
-
-/**
- * Big, mainstream shops reliably turn up in a plain (non-targeted) Google
- * Shopping search — so one general search can cover all of them at once
- * instead of one paid SerpAPI call each. Niche shops rarely surface that
- * way and still need a targeted per-shop query.
- */
-const BIG_SHOP_NAMES = new Set([
-  "H&M",
-  "Zara",
-  "ASOS",
-  "Massimo Dutti",
-  "Mango",
-  "COS",
-  "Uniqlo",
-]);
-
-export function splitShops(shops: Shop[]): { big: Shop[]; niche: Shop[] } {
-  const big: Shop[] = [];
-  const niche: Shop[] = [];
-  for (const shop of shops) {
-    (BIG_SHOP_NAMES.has(shop.name) ? big : niche).push(shop);
-  }
-  return { big, niche };
 }
 
 /** Lowercase, accent-stripped alphanumeric tokens, e.g. "H&M DE" -> ["h","m","de"]. */

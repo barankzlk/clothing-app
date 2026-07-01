@@ -3,7 +3,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { getJson } from "serpapi";
 
 import { createClient } from "@/lib/supabase/server";
-import { getShopsForGender, splitShops, findMatchingShop, type Shop } from "@/lib/shops";
+import { getShopsForGender, findMatchingShop, type Shop } from "@/lib/shops";
 import type { SearchProduct } from "@/lib/types";
 import {
   SEARCH_QUERY_MODEL,
@@ -15,7 +15,6 @@ import {
 export const dynamic = "force-dynamic";
 
 const RESULTS_PER_SHOP = 2;
-const GENERAL_SEARCH_NUM = 30;
 
 type SerpShoppingResult = {
   title?: string;
@@ -30,9 +29,7 @@ type SerpShoppingResult = {
   product_id?: string;
 };
 
-type SearchOutcome =
-  | { kind: "general"; data: Record<string, unknown> }
-  | { kind: "niche"; shop: Shop; data: Record<string, unknown> };
+type SearchOutcome = { shop: Shop; data: Record<string, unknown> };
 
 function toProduct(result: SerpShoppingResult, shop: Shop): SearchProduct | null {
   const url = result.link || result.product_link;
@@ -111,7 +108,6 @@ export async function POST(request: Request) {
     gender?: unknown;
     filters?: unknown;
     budgetMax?: unknown;
-    shopLimit?: unknown;
   };
   try {
     body = await request.json();
@@ -163,49 +159,22 @@ export async function POST(request: Request) {
     }
   }
 
-  // Step 2 — gender-based shop list, capped by the user's shop-limit slider,
-  // then split into the big/mainstream shops (covered by one general search)
-  // and the niche shops (still need a targeted query each, since they rarely
-  // surface in a general Google Shopping search).
-  const allShops = getShopsForGender(gender);
-  const shopLimit =
-    typeof body.shopLimit === "number" && Number.isFinite(body.shopLimit)
-      ? Math.max(1, Math.min(Math.floor(body.shopLimit), allShops.length))
-      : allShops.length;
-  const shops = allShops.slice(0, shopLimit);
-  const { big: bigShops, niche: nicheShops } = splitShops(shops);
-
+  // Step 2 — gender-based shop list. One targeted SerpAPI query per shop.
+  const shops = getShopsForGender(gender);
   const genderWord = gender === "male" ? "herren" : "damen";
 
-  // Step 3 — one general search covers every big shop at once; one targeted
-  // search per niche shop. All in parallel.
-  const searchPromises: Promise<SearchOutcome>[] = [];
-  if (bigShops.length > 0) {
-    searchPromises.push(
-      getJson({
-        engine: "google_shopping",
-        api_key: process.env.SERPAPI_KEY,
-        q: `${baseTerm} ${genderWord}`,
-        gl: "de",
-        hl: "de",
-        num: GENERAL_SEARCH_NUM,
-        currency: "EUR",
-      }).then((data) => ({ kind: "general" as const, data })),
-    );
-  }
-  for (const shop of nicheShops) {
-    searchPromises.push(
-      getJson({
-        engine: "google_shopping",
-        api_key: process.env.SERPAPI_KEY,
-        q: `${baseTerm} ${shop.name} ${genderWord}`,
-        gl: "de",
-        hl: "de",
-        num: 5,
-        currency: "EUR",
-      }).then((data) => ({ kind: "niche" as const, shop, data })),
-    );
-  }
+  // Step 3 — one search per shop, all in parallel.
+  const searchPromises: Promise<SearchOutcome>[] = shops.map((shop) =>
+    getJson({
+      engine: "google_shopping",
+      api_key: process.env.SERPAPI_KEY,
+      q: `${baseTerm} ${shop.name} ${genderWord}`,
+      gl: "de",
+      hl: "de",
+      num: 5,
+      currency: "EUR",
+    }).then((data) => ({ shop, data })),
+  );
 
   const settled = await Promise.allSettled(searchPromises);
 
@@ -243,19 +212,11 @@ export async function POST(request: Request) {
       ? (outcomeValue.data.shopping_results as SerpShoppingResult[])
       : [];
 
-    if (outcomeValue.kind === "general") {
-      // Only keep results that actually match one of our known big shops —
-      // discard anything from a shop we didn't ask for.
-      for (const result of shoppingResults) {
-        const matched = findMatchingShop(result, bigShops);
-        if (matched) tryAdd(result, matched);
-      }
-    } else {
-      // Verify this niche result really is the shop we searched for.
-      for (const result of shoppingResults) {
-        const matched = findMatchingShop(result, [outcomeValue.shop]);
-        if (matched) tryAdd(result, outcomeValue.shop);
-      }
+    // Verify each result really is the shop we searched for — Google
+    // Shopping sometimes fills in unrelated retailers.
+    for (const result of shoppingResults) {
+      const matched = findMatchingShop(result, [outcomeValue.shop]);
+      if (matched) tryAdd(result, outcomeValue.shop);
     }
   }
 
