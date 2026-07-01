@@ -64,6 +64,25 @@ function shuffle<T>(items: T[]): T[] {
   return copy;
 }
 
+/**
+ * The `serpapi` package rejects with the raw response body (a JSON string)
+ * on any non-200 response, rather than an Error — so a bad key or an
+ * exhausted plan quota shows up here as a rejected string, not `.message`.
+ */
+function describeSerpError(reason: unknown): string {
+  if (typeof reason === "string") {
+    try {
+      const parsed = JSON.parse(reason);
+      if (parsed && typeof parsed.error === "string") return parsed.error;
+    } catch {
+      // not JSON — fall through to the raw string
+    }
+    return reason;
+  }
+  if (reason instanceof Error) return reason.message;
+  return String(reason);
+}
+
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -159,12 +178,18 @@ export async function POST(request: Request) {
   // Step 4 — parse, budget-filter, dedupe by URL, shuffle.
   const results: SearchProduct[] = [];
   const seenUrls = new Set<string>();
+  const shopErrors: string[] = [];
+
   for (const outcome of settled) {
     if (outcome.status !== "fulfilled") {
-      console.error("SerpAPI shop search failed:", outcome.reason);
+      shopErrors.push(describeSerpError(outcome.reason));
       continue;
     }
     const { shop, data } = outcome.value;
+    if (typeof data.error === "string") {
+      shopErrors.push(data.error);
+      continue;
+    }
     const shoppingResults: SerpShoppingResult[] = Array.isArray(data.shopping_results)
       ? data.shopping_results
       : [];
@@ -180,6 +205,19 @@ export async function POST(request: Request) {
       results.push(product);
       taken++;
     }
+  }
+
+  // Every shop errored (bad key, exhausted quota, SerpAPI outage) — surface
+  // a real error instead of silently reporting zero results.
+  if (results.length === 0 && shops.length > 0 && shopErrors.length === shops.length) {
+    console.error("All SerpAPI shop searches failed:", shopErrors[0]);
+    return NextResponse.json(
+      { error: "Search provider error. Check the SerpAPI key and plan quota." },
+      { status: 502 },
+    );
+  }
+  if (shopErrors.length > 0) {
+    console.error(`${shopErrors.length}/${shops.length} SerpAPI shop searches failed:`, shopErrors[0]);
   }
 
   const shuffled = shuffle(results);
