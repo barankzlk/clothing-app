@@ -31,7 +31,7 @@ export default async function SearchPage() {
     .limit(8);
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-7xl px-4 pb-32 pt-6 lg:px-6 lg:pb-6">
+    <div className="mx-auto min-h-dvh w-full max-w-7xl px-4 pb-32 pt-6 lg:px-6 lg:pb-6">
       <header className="mb-8 flex items-center justify-between">
         <Brand />
         <div className="flex items-center gap-3">

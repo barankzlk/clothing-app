@@ -2,15 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ExternalLink,
-  Heart,
-  Star,
-  Undo2,
-  X,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Heart, Loader2, Star } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { SearchProduct } from "@/lib/types";
@@ -23,9 +15,12 @@ const SWIPE_THRESHOLD = 100;
 const EXIT_DURATION_MS = 300;
 
 /**
- * One-card-at-a-time swipe/skip deck over real Google Shopping results. Give
- * this component a fresh `key` from the parent (e.g. a per-search counter)
- * so re-running the same query text still starts the deck over from card one.
+ * A browsable carousel over real Google Shopping results — swiping, the
+ * arrow keys, and the side buttons only move through the list. Saving to
+ * favorites is a separate, explicit action (the "Speichern" toggle) with no
+ * side effect on navigation, so browsing back and forth never loses or
+ * duplicates anything. Give this component a fresh `key` from the parent
+ * (e.g. a per-search counter) so re-running the same query starts over.
  */
 export function ProductSwipeDeck({
   products,
@@ -38,20 +33,14 @@ export function ProductSwipeDeck({
 }) {
   const { t } = useLocale();
   const [index, setIndex] = useState(0);
-  const [savedCount, setSavedCount] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
 
-  // Per-card decision history — lets "back" undo a skip/save instead of the
-  // card being gone for good, and lets us delete a favorite if the user
-  // backs up to a saved card and skips it instead.
-  const [decisions, setDecisions] = useState<Array<"left" | "right" | null>>(() =>
-    products.map(() => null),
-  );
-  const [favoriteIds, setFavoriteIds] = useState<Array<string | null>>(() =>
-    products.map(() => null),
-  );
+  // Which cards are already saved, keyed by index -> favorites row id.
+  const [favoriteIds, setFavoriteIds] = useState<Record<number, string>>({});
+  const [savingIndex, setSavingIndex] = useState<number | null>(null);
+
   // Full-resolution image fetched lazily per card — SerpAPI's shopping
   // thumbnail is a small compressed proxy, too blurry at full-card size.
   const [hiResImages, setHiResImages] = useState<Record<number, string>>({});
@@ -61,59 +50,12 @@ export function ProductSwipeDeck({
 
   const total = products.length;
   const product = products[index];
-  const done = total > 0 && !product;
+  const isSaved = favoriteIds[index] != null;
+  const isSaving = savingIndex === index;
 
-  async function saveToFavorites(p: SearchProduct, savedIndex: number) {
-    const supabase = createClient();
-    const { data, error } = await supabase
-      .from("favorites")
-      .insert({
-        user_id: userId,
-        title: p.title,
-        shop: p.shop,
-        url: p.url,
-        price: p.price,
-        image_url: hiResImages[savedIndex] ?? p.image_url,
-        rating: p.rating != null ? String(p.rating) : null,
-        reason: null,
-        search_query: query,
-      })
-      .select("id")
-      .single();
-
-    if (error || !data) {
-      console.error("Failed to save favorite:", error?.message);
-      toast.error(t("swipe.saveFailed"));
-      // The count was incremented optimistically in advance() — undo that
-      // and clear the decision so a later "back" doesn't try to delete a
-      // favorite that was never actually created.
-      setSavedCount((c) => Math.max(0, c - 1));
-      setDecisions((d) => {
-        const next = [...d];
-        next[savedIndex] = null;
-        return next;
-      });
-      return;
-    }
-    setFavoriteIds((ids) => {
-      const next = [...ids];
-      next[savedIndex] = data.id;
-      return next;
-    });
-  }
-
-  function advance(direction: "left" | "right") {
-    if (exitDirection || !product) return;
-    setExitDirection(direction);
-    setDecisions((d) => {
-      const next = [...d];
-      next[index] = direction;
-      return next;
-    });
-    if (direction === "right") {
-      setSavedCount((c) => c + 1);
-      void saveToFavorites(product, index);
-    }
+  function goNext() {
+    if (exitDirection || index >= total - 1) return;
+    setExitDirection("left");
     setTimeout(() => {
       setIndex((i) => i + 1);
       setExitDirection(null);
@@ -121,50 +63,80 @@ export function ProductSwipeDeck({
     }, EXIT_DURATION_MS);
   }
 
-  function goBack() {
-    if (index === 0 || exitDirection) return;
-    const prevIndex = index - 1;
-    if (decisions[prevIndex] === "right") {
-      setSavedCount((c) => Math.max(0, c - 1));
-      const favoriteId = favoriteIds[prevIndex];
-      if (favoriteId) {
-        const supabase = createClient();
-        void supabase.from("favorites").delete().eq("id", favoriteId);
-      }
-    }
-    setDecisions((d) => {
-      const next = [...d];
-      next[prevIndex] = null;
-      return next;
-    });
-    setFavoriteIds((ids) => {
-      const next = [...ids];
-      next[prevIndex] = null;
-      return next;
-    });
-    setDragX(0);
-    setIndex(prevIndex);
+  function goPrev() {
+    if (exitDirection || index <= 0) return;
+    setExitDirection("right");
+    setTimeout(() => {
+      setIndex((i) => i - 1);
+      setExitDirection(null);
+      setDragX(0);
+    }, EXIT_DURATION_MS);
   }
 
-  // Keyboard support (desktop). Ignore arrow keys while typing elsewhere
-  // (e.g. the search input just above this deck).
+  async function toggleSave() {
+    if (!product || savingIndex !== null) return;
+    setSavingIndex(index);
+    const supabase = createClient();
+    const existingId = favoriteIds[index];
+
+    try {
+      if (existingId) {
+        const { error } = await supabase.from("favorites").delete().eq("id", existingId);
+        if (error) {
+          console.error("Failed to remove favorite:", error.message);
+          toast.error(t("swipe.saveFailed"));
+        } else {
+          setFavoriteIds((ids) => {
+            const next = { ...ids };
+            delete next[index];
+            return next;
+          });
+        }
+      } else {
+        const { data, error } = await supabase
+          .from("favorites")
+          .insert({
+            user_id: userId,
+            title: product.title,
+            shop: product.shop,
+            url: product.url,
+            price: product.price,
+            image_url: hiResImages[index] ?? product.image_url,
+            rating: product.rating != null ? String(product.rating) : null,
+            reason: null,
+            search_query: query,
+          })
+          .select("id")
+          .single();
+
+        if (error || !data) {
+          console.error("Failed to save favorite:", error?.message);
+          toast.error(t("swipe.saveFailed"));
+        } else {
+          setFavoriteIds((ids) => ({ ...ids, [index]: data.id }));
+        }
+      }
+    } catch (err) {
+      console.error("Favorite toggle threw:", err instanceof Error ? err.message : err);
+      toast.error(t("swipe.saveFailed"));
+    } finally {
+      setSavingIndex(null);
+    }
+  }
+
+  // Keyboard support (desktop): pure navigation, no side effects. Ignore
+  // arrow keys while typing elsewhere (e.g. the search input above the deck).
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if (e.key === "Backspace") {
-        e.preventDefault();
-        goBack();
-        return;
-      }
-      if (done) return;
-      if (e.key === "ArrowLeft") advance("left");
-      if (e.key === "ArrowRight") advance("right");
+      if (e.key === "ArrowLeft") goNext();
+      if (e.key === "ArrowRight") goPrev();
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [done, exitDirection, index, product, query, decisions, favoriteIds]);
+  }, [index, total, exitDirection]);
 
   // Lazily upgrade the current card's image to a full-resolution one. The
   // "already fetched" mark is only set on a successful response — in dev,
@@ -214,23 +186,11 @@ export function ProductSwipeDeck({
     dragStartX.current = null;
     setDragging(false);
     if (Math.abs(dragX) > SWIPE_THRESHOLD) {
-      advance(dragX > 0 ? "right" : "left");
-    } else {
-      setDragX(0);
+      if (dragX < 0) goNext();
+      else goPrev();
     }
+    setDragX(0);
   }
-
-  const backControl = (
-    <button
-      type="button"
-      onClick={goBack}
-      disabled={index === 0}
-      aria-label={t("swipe.back")}
-      className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-30"
-    >
-      <Undo2 className="size-3.5" /> {t("swipe.back")}
-    </button>
-  );
 
   if (total === 0) {
     return (
@@ -242,26 +202,6 @@ export function ProductSwipeDeck({
     );
   }
 
-  if (done) {
-    return (
-      <div className="mx-auto max-w-[480px] space-y-3">
-        {index > 0 && <div className="flex justify-center">{backControl}</div>}
-        <Card className="space-y-4 p-8 text-center">
-          <p className="text-lg font-semibold text-ink">
-            {t(savedCount === 1 ? "swipe.summaryTitleOne" : "swipe.summaryTitle", {
-              count: savedCount,
-            })}
-          </p>
-          <Button asChild>
-            <a href="/favorites">
-              <Heart className="size-4" /> {t("swipe.goToFavorites")}
-            </a>
-          </Button>
-        </Card>
-      </div>
-    );
-  }
-
   const displayImage = hiResImages[index] ?? product.image_url;
   const translateX =
     exitDirection === "left" ? -600 : exitDirection === "right" ? 600 : dragX;
@@ -270,19 +210,17 @@ export function ProductSwipeDeck({
 
   return (
     <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3">
-      <div className="flex w-full items-center justify-center gap-3">
-        {backControl}
-        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          {t("swipe.progress", { current: index + 1, total })}
-        </p>
-      </div>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+        {t("swipe.progress", { current: index + 1, total })}
+      </p>
 
       <div className="flex w-full items-center justify-center gap-4">
         <button
           type="button"
-          onClick={() => advance("left")}
-          aria-label={t("swipe.skip")}
-          className="hidden size-12 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors hover:bg-accent sm:flex"
+          onClick={goPrev}
+          disabled={index === 0}
+          aria-label={t("swipe.previous")}
+          className="hidden size-12 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-30 sm:flex"
         >
           <ArrowLeft className="size-5" />
         </button>
@@ -343,28 +281,28 @@ export function ProductSwipeDeck({
             </a>
           </Button>
 
-          <div className="flex items-center gap-3">
-            <Button
-              variant="outline"
-              size="lg"
-              className="flex-1"
-              onClick={() => advance("left")}
-            >
-              <X className="size-4" />
-              {t("swipe.skip")}
-            </Button>
-            <Button size="lg" className="flex-1" onClick={() => advance("right")}>
-              <Heart className="size-4" />
-              {t("swipe.save")}
-            </Button>
-          </div>
+          <Button
+            variant={isSaved ? "default" : "outline"}
+            size="lg"
+            className="w-full"
+            onClick={toggleSave}
+            disabled={isSaving}
+          >
+            {isSaving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Heart className={cn("size-4", isSaved && "fill-current")} />
+            )}
+            {t(isSaved ? "swipe.saved" : "swipe.save")}
+          </Button>
         </Card>
 
         <button
           type="button"
-          onClick={() => advance("right")}
-          aria-label={t("swipe.save")}
-          className="hidden size-12 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors hover:bg-accent sm:flex"
+          onClick={goNext}
+          disabled={index === total - 1}
+          aria-label={t("swipe.next")}
+          className="hidden size-12 shrink-0 items-center justify-center rounded-full border border-line bg-card text-ink transition-colors hover:bg-accent disabled:pointer-events-none disabled:opacity-30 sm:flex"
         >
           <ArrowRight className="size-5" />
         </button>
