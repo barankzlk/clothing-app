@@ -75,25 +75,39 @@ export function splitShops(shops: Shop[]): { big: Shop[]; niche: Shop[] } {
   return { big, niche };
 }
 
-function normalize(s: string): string {
+/** Lowercase, accent-stripped alphanumeric tokens, e.g. "H&M DE" -> ["h","m","de"]. */
+function tokenize(s: string): string[] {
   return s
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "") // strip accents, e.g. "é" -> "e"
     .toLowerCase()
-    .replace(/[^a-z0-9]/g, "");
+    .split(/[^a-z0-9]+/)
+    .filter(Boolean);
+}
+
+/** Does `needle` appear as a contiguous run inside `haystack`? */
+function containsSubsequence(haystack: string[], needle: string[]): boolean {
+  if (needle.length === 0 || needle.length > haystack.length) return false;
+  outer: for (let i = 0; i + needle.length <= haystack.length; i++) {
+    for (let j = 0; j < needle.length; j++) {
+      if (haystack[i + j] !== needle[j]) continue outer;
+    }
+    return true;
+  }
+  return false;
 }
 
 /**
  * Does this SerpAPI shopping result actually belong to one of `candidates`?
- * Checks both the reported seller name and the product URL's hostname,
- * since Google Shopping will happily fill in some unrelated retailer when
- * it doesn't have a great match for what we asked for.
+ * Checks the product URL's hostname first (authoritative), then falls back
+ * to the reported seller name — matched as a whole-word token sequence, not
+ * a raw substring, so e.g. "Zaragoza Boutique" doesn't falsely match "Zara"
+ * just because the letters appear inside a longer, unrelated word.
  */
 export function findMatchingShop(
   result: { source?: string; link?: string; product_link?: string },
   candidates: Shop[],
 ): Shop | null {
-  const source = result.source ? normalize(result.source) : "";
   let host = "";
   try {
     host = new URL(result.link || result.product_link || "").hostname
@@ -102,17 +116,19 @@ export function findMatchingShop(
   } catch {
     host = "";
   }
-
-  for (const shop of candidates) {
-    const shopName = normalize(shop.name);
-    if (source && (source.includes(shopName) || shopName.includes(source))) {
-      return shop;
-    }
-    if (host) {
+  if (host) {
+    for (const shop of candidates) {
       const domain = shop.domain.toLowerCase().replace(/^www\d*\./, "");
       if (host === domain || host.endsWith(`.${domain}`) || domain.endsWith(`.${host}`)) {
         return shop;
       }
+    }
+  }
+
+  if (result.source) {
+    const sourceTokens = tokenize(result.source);
+    for (const shop of candidates) {
+      if (containsSubsequence(sourceTokens, tokenize(shop.name))) return shop;
     }
   }
   return null;

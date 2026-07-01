@@ -173,11 +173,14 @@ export function SearchClient({
         }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Search failed");
+      if (!res.ok) {
+        const message = [data?.error, data?.detail].filter(Boolean).join(" — ");
+        throw new Error(message || "Search failed");
+      }
       setResults(Array.isArray(data?.results) ? data.results : []);
       setSearchNonce((n) => n + 1);
-    } catch {
-      toast.error(t("search.searchFailed"));
+    } catch (err) {
+      toast.error(err instanceof Error && err.message ? err.message : t("search.searchFailed"));
       setResults([]);
     } finally {
       setSearching(false);

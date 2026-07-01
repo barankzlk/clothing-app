@@ -260,12 +260,19 @@ export async function POST(request: Request) {
   }
 
   // Every search errored (bad key, exhausted quota, SerpAPI outage) —
-  // surface a real error instead of silently reporting zero results.
+  // surface a real error instead of silently reporting zero results. The
+  // `detail` is SerpAPI's own error text (never sensitive — things like
+  // "invalid API key" or "out of searches this month"), included directly
+  // in the response so it's visible in the browser's network tab instead of
+  // only in server-side logs.
   const totalSearches = searchPromises.length;
   if (results.length === 0 && totalSearches > 0 && shopErrors.length === totalSearches) {
     console.error("All SerpAPI searches failed:", shopErrors[0]);
     return NextResponse.json(
-      { error: "Search provider error. Check the SerpAPI key and plan quota." },
+      {
+        error: "Search provider error. Check the SerpAPI key and plan quota.",
+        detail: shopErrors[0],
+      },
       { status: 502 },
     );
   }
