@@ -95,19 +95,3 @@ export type FavoriteInsert = {
   search_query?: string | null;
   created_at?: string;
 };
-
-/** Shape of a single product returned by the /api/search route. */
-export type SearchProduct = {
-  title: string;
-  shop: string;
-  price: string;
-  url: string;
-  image_url: string | null;
-  reason: string;
-  in_stock: boolean;
-};
-
-export type SearchResponse = {
-  results: SearchProduct[];
-  search_summary: string;
-};

@@ -1,18 +1,21 @@
 # DRIP
 
-An AI-powered personal fashion search app. Describe a piece in your own words and
-DRIP searches real European online shops, filtered to your size, style, and budget.
+A personal fashion search app. Describe a piece in your own words and DRIP
+sends you straight to that search on every shop it covers — always live, so
+what you see is always in stock.
 
 Built with **Next.js 14 (App Router)**, **TypeScript**, **Tailwind CSS + shadcn/ui**,
-**Supabase** (Postgres + Auth), and the **Anthropic API** (`claude-sonnet-4-6`) with
-the `web_search_20250305` tool.
+and **Supabase** (Postgres + Auth).
 
 ## Features
 
 - Email/password auth (Supabase) with a protected-route middleware
 - 4-step onboarding wizard (about you → measurements → style → preferences)
 - Editable profile (sizes, body shape, style tags, fabrics, budget, notes)
-- AI search: a stylist system prompt + live web search returns up to 8 real products
+- Search: one query fans out into direct search-results links across the shop
+  list (H&M, Zara, ASOS, Oh Polly, Club L London, Massimo Dutti, Mango,
+  Meshki, COS, House of CB, Sézane, Toteme, Loulou de Saison, Uniqlo) — no AI
+  call, no stock guessing, zero per-search cost
 - Save/remove favorites, sortable favorites page
 - Editorial, minimal design system (muted sage accent, no shadows, 8px radius)
 
@@ -37,9 +40,6 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API (server-only) |
-| `ANTHROPIC_API_KEY` | https://console.anthropic.com/ |
-
-Optional: `ANTHROPIC_MODEL` overrides the default model id (`claude-sonnet-4-6`).
 
 ### 3. Set up the database
 
@@ -81,15 +81,14 @@ then to `/search`.
 app/
   auth/            Sign in / create account (+ /auth/callback)
   onboarding/      4-step profile wizard
-  search/          Main search page (sidebar + results grid)
+  search/          Main search page (sidebar + shop search-link grid)
   favorites/       Saved items
   profile/         Edit profile
-  api/search/      AI search route (Anthropic + web search)
 components/        UI + feature components (components/ui = shadcn)
 lib/
   supabase/        Browser, server, and middleware clients
   types.ts         Hand-written DB types (mirror the migration)
   style-tags.ts    Hardcoded style tags, sizes, body shapes, budget
-  search-prompt.ts System prompt builder + response parsing
+  shops.ts         Shop list + per-shop search-URL builders
 supabase/migrations/  SQL schema
 ```
