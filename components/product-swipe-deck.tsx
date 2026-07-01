@@ -162,7 +162,7 @@ export function ProductSwipeDeck({
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           className={cn(
-            "w-full max-w-[480px] touch-pan-y select-none space-y-4 p-6 text-center",
+            "w-full max-w-[480px] touch-pan-y select-none space-y-3.5 p-5 text-center",
             !dragging && "transition-transform duration-300 ease-out",
           )}
           style={{
@@ -170,54 +170,59 @@ export function ProductSwipeDeck({
             opacity,
           }}
         >
-          <div className="h-64 w-full overflow-hidden rounded-lg bg-secondary">
+          <div className="aspect-[4/5] w-full overflow-hidden rounded-lg bg-secondary">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={product.image_url}
               alt={product.title}
-              className="h-full w-full object-cover"
+              className="h-full w-full object-contain"
             />
           </div>
 
-          <div className="space-y-1">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              {product.shop}
-            </p>
-            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-ink">
-              {product.title}
-            </h3>
-            {product.price && (
-              <p className="text-lg font-semibold text-ink">{product.price}</p>
-            )}
-            {product.rating != null && (
-              <p className="flex items-center justify-center gap-1 text-sm font-medium text-sage">
-                <Star className="size-3.5 fill-current" />
-                {product.rating.toFixed(1)}
-                {product.reviews != null && (
-                  <span className="opacity-70">({product.reviews})</span>
-                )}
+          <div className="space-y-1.5">
+            <div className="space-y-0.5">
+              <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                {product.shop}
               </p>
-            )}
+              <h3 className="line-clamp-2 text-sm font-medium leading-snug text-ink">
+                {product.title}
+              </h3>
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              {product.price && (
+                <p className="text-xl font-bold text-ink">{product.price}</p>
+              )}
+              {product.rating != null && (
+                <p className="flex items-center gap-1 text-xs font-medium text-sage">
+                  <Star className="size-3 fill-current" />
+                  {product.rating.toFixed(1)}
+                  {product.reviews != null && (
+                    <span className="opacity-70">({product.reviews})</span>
+                  )}
+                </p>
+              )}
+            </div>
           </div>
 
-          <Button variant="outline" asChild className="w-full">
+          <Button variant="outline" size="sm" asChild className="w-full">
             <a href={product.url} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-4" /> {t("swipe.viewProduct")}
+              <ExternalLink className="size-3.5" /> {t("swipe.viewProduct")}
             </a>
           </Button>
 
-          <div className="flex items-center gap-3 pt-1">
+          <div className="flex items-center gap-3">
             <Button
               variant="outline"
               size="lg"
-              className="h-14 flex-1"
+              className="flex-1"
               onClick={() => advance("left")}
             >
-              <X className="size-5" />
+              <X className="size-4" />
               {t("swipe.skip")}
             </Button>
-            <Button size="lg" className="h-14 flex-1" onClick={() => advance("right")}>
-              <Heart className="size-5" />
+            <Button size="lg" className="flex-1" onClick={() => advance("right")}>
+              <Heart className="size-4" />
               {t("swipe.save")}
             </Button>
           </div>
