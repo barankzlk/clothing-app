@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ExternalLink, Heart, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, ExternalLink, Heart, Star, X } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { SHOPS, type Shop } from "@/lib/shops";
+import type { SearchProduct } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/lib/i18n/locale-context";
-import { getShopDescription } from "@/lib/i18n/shop-descriptions";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -15,12 +14,20 @@ const SWIPE_THRESHOLD = 100;
 const EXIT_DURATION_MS = 300;
 
 /**
- * One-card-at-a-time swipe/skip deck over every shop. Give this component a
- * fresh `key` from the parent (e.g. a per-search counter) so re-running the
- * same query text still starts the deck over from card one.
+ * One-card-at-a-time swipe/skip deck over real Google Shopping results. Give
+ * this component a fresh `key` from the parent (e.g. a per-search counter)
+ * so re-running the same query text still starts the deck over from card one.
  */
-export function ShopSwipeDeck({ query, userId }: { query: string; userId: string }) {
-  const { t, locale } = useLocale();
+export function ProductSwipeDeck({
+  products,
+  query,
+  userId,
+}: {
+  products: SearchProduct[];
+  query: string;
+  userId: string;
+}) {
+  const { t } = useLocale();
   const [index, setIndex] = useState(0);
   const [savedCount, setSavedCount] = useState(0);
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
@@ -29,30 +36,31 @@ export function ShopSwipeDeck({ query, userId }: { query: string; userId: string
 
   const dragStartX = useRef<number | null>(null);
 
-  const total = SHOPS.length;
-  const shop = SHOPS[index];
-  const done = !shop;
+  const total = products.length;
+  const product = products[index];
+  const done = total > 0 && !product;
 
-  async function saveToFavorites(shopName: string, url: string) {
+  async function saveToFavorites(p: SearchProduct) {
     const supabase = createClient();
     await supabase.from("favorites").insert({
       user_id: userId,
-      title: query,
-      shop: shopName,
-      url,
-      price: "",
-      image_url: null,
+      title: p.title,
+      shop: p.shop,
+      url: p.url,
+      price: p.price,
+      image_url: p.image_url,
+      rating: p.rating != null ? String(p.rating) : null,
       reason: null,
       search_query: query,
     });
   }
 
   function advance(direction: "left" | "right") {
-    if (exitDirection || !shop) return;
+    if (exitDirection || !product) return;
     setExitDirection(direction);
     if (direction === "right") {
       setSavedCount((c) => c + 1);
-      void saveToFavorites(shop.name, shop.searchUrl(query));
+      void saveToFavorites(product);
     }
     setTimeout(() => {
       setIndex((i) => i + 1);
@@ -74,7 +82,7 @@ export function ShopSwipeDeck({ query, userId }: { query: string; userId: string
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [done, exitDirection, index, shop, query]);
+  }, [done, exitDirection, index, product, query]);
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if ((e.target as HTMLElement).closest("a, button")) return;
@@ -98,6 +106,16 @@ export function ShopSwipeDeck({ query, userId }: { query: string; userId: string
     } else {
       setDragX(0);
     }
+  }
+
+  if (total === 0) {
+    return (
+      <Card className="mx-auto max-w-[480px] space-y-2 p-8 text-center">
+        <p className="text-sm font-normal text-muted-foreground">
+          {t("swipe.noResults")}
+        </p>
+      </Card>
+    );
   }
 
   if (done) {
@@ -144,7 +162,7 @@ export function ShopSwipeDeck({ query, userId }: { query: string; userId: string
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
           className={cn(
-            "w-full max-w-[480px] touch-pan-y select-none space-y-5 p-6 text-center",
+            "w-full max-w-[480px] touch-pan-y select-none space-y-4 p-6 text-center",
             !dragging && "transition-transform duration-300 ease-out",
           )}
           style={{
@@ -152,20 +170,42 @@ export function ShopSwipeDeck({ query, userId }: { query: string; userId: string
             opacity,
           }}
         >
-          <div className="flex h-32 items-center justify-center rounded-lg bg-secondary">
-            <ShopLogo shop={shop} />
+          <div className="h-64 w-full overflow-hidden rounded-lg bg-secondary">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={product.image_url}
+              alt={product.title}
+              className="h-full w-full object-cover"
+            />
           </div>
+
           <div className="space-y-1">
-            <h3 className="text-lg font-semibold text-ink">{shop.name}</h3>
-            <p className="text-sm font-normal text-muted-foreground">
-              {getShopDescription(shop.name, locale)}
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              {product.shop}
             </p>
+            <h3 className="line-clamp-2 text-base font-semibold leading-snug text-ink">
+              {product.title}
+            </h3>
+            {product.price && (
+              <p className="text-lg font-semibold text-ink">{product.price}</p>
+            )}
+            {product.rating != null && (
+              <p className="flex items-center justify-center gap-1 text-sm font-medium text-sage">
+                <Star className="size-3.5 fill-current" />
+                {product.rating.toFixed(1)}
+                {product.reviews != null && (
+                  <span className="opacity-70">({product.reviews})</span>
+                )}
+              </p>
+            )}
           </div>
+
           <Button variant="outline" asChild className="w-full">
-            <a href={shop.searchUrl(query)} target="_blank" rel="noopener noreferrer">
-              <ExternalLink className="size-4" /> {t("swipe.searchNow")}
+            <a href={product.url} target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="size-4" /> {t("swipe.viewProduct")}
             </a>
           </Button>
+
           <div className="flex items-center gap-3 pt-1">
             <Button
               variant="outline"
@@ -193,28 +233,5 @@ export function ShopSwipeDeck({ query, userId }: { query: string; userId: string
         </button>
       </div>
     </div>
-  );
-}
-
-function ShopLogo({ shop }: { shop: Shop }) {
-  const [failed, setFailed] = useState(false);
-  const logoUrl = `https://logo.clearbit.com/${shop.domain}`;
-
-  if (failed) {
-    return (
-      <span className="text-2xl font-medium text-muted-foreground">
-        {shop.name.slice(0, 2).toUpperCase()}
-      </span>
-    );
-  }
-
-  return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
-      src={logoUrl}
-      alt={shop.name}
-      className="h-20 w-40 object-contain"
-      onError={() => setFailed(true)}
-    />
   );
 }

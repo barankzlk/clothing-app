@@ -1,91 +1,51 @@
 /**
- * Shops we link out to. Instead of asking an LLM to find and verify
- * individual products (which can't reliably know real-time stock), we send
- * the user straight to each shop's own search results page for their query —
- * always live, always accurate stock/availability, zero API cost.
+ * Shops we run Google Shopping (SerpAPI) searches against, one query per
+ * shop. `domain` is used both to build the per-shop search query and as the
+ * fallback for the Clearbit logo lookup when a result doesn't clearly name
+ * its own domain.
  */
 export type Shop = {
   name: string;
-  /** Domain used for the Clearbit logo lookup. */
   domain: string;
-  /** Build the shop's own search-results URL for a free-text query. */
-  searchUrl: (query: string) => string;
 };
 
-export const SHOPS: Shop[] = [
-  {
-    name: "H&M",
-    domain: "hm.com",
-    searchUrl: (q) =>
-      `https://www2.hm.com/de_de/search-results.html?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Zara",
-    domain: "zara.com",
-    searchUrl: (q) =>
-      `https://www.zara.com/de/de/search?searchTerm=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "ASOS",
-    domain: "asos.com",
-    searchUrl: (q) => `https://www.asos.com/de/search/?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Oh Polly",
-    domain: "ohpolly.com",
-    searchUrl: (q) => `https://www.ohpolly.com/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Club L London",
-    domain: "clubllondon.com",
-    searchUrl: (q) => `https://clubllondon.com/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Massimo Dutti",
-    domain: "massimodutti.com",
-    searchUrl: (q) =>
-      `https://www.massimodutti.com/de/search?searchTerm=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Mango",
-    domain: "mango.com",
-    searchUrl: (q) => `https://shop.mango.com/de/search?kw=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Meshki",
-    domain: "meshki.com",
-    searchUrl: (q) => `https://meshki.com/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "COS",
-    domain: "cos.com",
-    searchUrl: (q) => `https://www.cos.com/de_de/search.html?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "House of CB",
-    domain: "houseofcb.com",
-    searchUrl: (q) => `https://www.houseofcb.com/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Sézane",
-    domain: "sezane.com",
-    searchUrl: (q) => `https://www.sezane.com/de/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Toteme",
-    domain: "toteme-studio.com",
-    searchUrl: (q) => `https://toteme-studio.com/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Loulou de Saison",
-    domain: "louloudesaison.com",
-    searchUrl: (q) =>
-      `https://www.louloudesaison.com/search?q=${encodeURIComponent(q)}`,
-  },
-  {
-    name: "Uniqlo",
-    domain: "uniqlo.com",
-    searchUrl: (q) =>
-      `https://www.uniqlo.com/de/de/search?q=${encodeURIComponent(q)}`,
-  },
+const HM: Shop = { name: "H&M", domain: "hm.com" };
+const ZARA: Shop = { name: "Zara", domain: "zara.com" };
+const ASOS: Shop = { name: "ASOS", domain: "asos.com" };
+const MASSIMO_DUTTI: Shop = { name: "Massimo Dutti", domain: "massimodutti.com" };
+const MANGO: Shop = { name: "Mango", domain: "mango.com" };
+const COS: Shop = { name: "COS", domain: "cos.com" };
+const UNIQLO: Shop = { name: "Uniqlo", domain: "uniqlo.com" };
+
+/** Shown for female and non-binary profiles (and as the default). */
+export const FEMALE_SHOPS: Shop[] = [
+  HM,
+  ZARA,
+  ASOS,
+  { name: "Oh Polly", domain: "ohpolly.com" },
+  { name: "Club L London", domain: "clubllondon.com" },
+  MASSIMO_DUTTI,
+  MANGO,
+  { name: "Meshki", domain: "meshki.com" },
+  COS,
+  { name: "House of CB", domain: "houseofcb.com" },
+  { name: "Sézane", domain: "sezane.com" },
+  { name: "Toteme", domain: "toteme-studio.com" },
+  { name: "Loulou de Saison", domain: "louloudesaison.com" },
+  UNIQLO,
 ];
+
+/** Shown for male profiles. */
+export const MALE_SHOPS: Shop[] = [
+  HM,
+  ZARA,
+  ASOS,
+  MASSIMO_DUTTI,
+  COS,
+  MANGO,
+  UNIQLO,
+];
+
+export function getShopsForGender(gender: string | null | undefined): Shop[] {
+  return gender === "male" ? MALE_SHOPS : FEMALE_SHOPS;
+}

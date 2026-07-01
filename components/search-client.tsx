@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 
-import type { Profile, SavedSearch } from "@/lib/types";
+import type { Profile, SavedSearch, SearchProduct } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useLocale } from "@/lib/i18n/locale-context";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { SearchFilters } from "@/components/search-filters";
-import { ShopSwipeDeck } from "@/components/shop-swipe-deck";
+import { ProductSwipeDeck } from "@/components/product-swipe-deck";
 
 const SUGGESTION_DEBOUNCE_MS = 600;
 const TYPEAHEAD_DEBOUNCE_MS = 450;
@@ -37,8 +37,10 @@ export function SearchClient({
   const { t, locale } = useLocale();
   const [query, setQuery] = useState("");
   const [searched, setSearched] = useState(false);
+  const [searching, setSearching] = useState(false);
   const [lastQuery, setLastQuery] = useState("");
   const [searchNonce, setSearchNonce] = useState(0);
+  const [results, setResults] = useState<SearchProduct[]>([]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -140,15 +142,37 @@ export function SearchClient({
     setRecentSearches((list) => [data, ...list].slice(0, MAX_RECENT_SEARCHES));
   }
 
-  function execute(q: string, filters: string[]) {
+  async function execute(q: string, filters: string[]) {
     setQuery(q);
     setSelectedTags(filters);
     setLastQuery(q);
     setSearched(true);
     setTypeaheadOpen(false);
-    setSearchNonce((n) => n + 1);
     searchInputRef.current?.blur();
     void saveSearch(q, filters);
+
+    setSearching(true);
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: q,
+          gender: profile.gender,
+          filters,
+          budgetMax: profile.budget_max_eur,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Search failed");
+      setResults(Array.isArray(data?.results) ? data.results : []);
+      setSearchNonce((n) => n + 1);
+    } catch {
+      toast.error(t("search.searchFailed"));
+      setResults([]);
+    } finally {
+      setSearching(false);
+    }
   }
 
   function runSearch(e?: React.FormEvent) {
@@ -333,13 +357,27 @@ export function SearchClient({
         )}
       </Card>
 
-      {/* Row 4: swipe/skip shop deck */}
+      {/* Row 4: swipe/skip product deck */}
       {searched ? (
         <div className="space-y-4">
-          <p className="text-center text-sm font-normal text-muted-foreground">
-            {t("search.liveResults", { query: lastQuery })}
-          </p>
-          <ShopSwipeDeck key={searchNonce} query={lastQuery} userId={userId} />
+          {searching ? (
+            <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="size-6 animate-spin" />
+              <p className="text-sm font-normal">{t("search.searching")}</p>
+            </div>
+          ) : (
+            <>
+              <p className="text-center text-sm font-normal text-muted-foreground">
+                {t("search.liveResults", { query: lastQuery, total: results.length })}
+              </p>
+              <ProductSwipeDeck
+                key={searchNonce}
+                products={results}
+                query={lastQuery}
+                userId={userId}
+              />
+            </>
+          )}
         </div>
       ) : (
         <SearchIntro name={profile.name} />

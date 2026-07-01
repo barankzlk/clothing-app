@@ -101,6 +101,7 @@ export function FavoritesClient({ initial }: { initial: Favorite[] }) {
               price: fav.price ?? "",
               url: fav.url ?? "#",
               image_url: fav.image_url,
+              rating: fav.rating,
               reason: fav.reason ?? "",
             }}
           />

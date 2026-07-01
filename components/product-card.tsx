@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Trash2, ImageOff, Loader2 } from "lucide-react";
+import { ExternalLink, Trash2, ImageOff, Loader2, Star } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +13,7 @@ export type ProductCardData = {
   price: string;
   url: string;
   image_url: string | null;
+  rating: string | null;
   reason: string;
 };
 
@@ -58,6 +59,11 @@ export function ProductCard({
         </h3>
         {product.price && (
           <p className="text-base font-semibold text-sage">{product.price}</p>
+        )}
+        {product.rating && (
+          <p className="flex items-center gap-1 text-sm font-medium text-sage">
+            <Star className="size-3.5 fill-current" /> {product.rating}
+          </p>
         )}
         {product.reason && (
           <p className="text-sm font-normal italic text-muted-foreground">

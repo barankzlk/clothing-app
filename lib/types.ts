@@ -84,6 +84,7 @@ export type Favorite = {
   shop: string | null;
   url: string | null;
   image_url: string | null;
+  rating: string | null;
   reason: string | null;
   search_query: string | null;
   created_at: string;
@@ -97,9 +98,22 @@ export type FavoriteInsert = {
   shop?: string | null;
   url?: string | null;
   image_url?: string | null;
+  rating?: string | null;
   reason?: string | null;
   search_query?: string | null;
   created_at?: string;
+};
+
+/** One Google Shopping result, normalized from a SerpAPI response. */
+export type SearchProduct = {
+  title: string;
+  shop: string;
+  price: string;
+  url: string;
+  image_url: string;
+  rating: number | null;
+  reviews: number | null;
+  shop_logo: string;
 };
 
 export type SavedSearch = {
