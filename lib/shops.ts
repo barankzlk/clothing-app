@@ -98,6 +98,19 @@ function containsSubsequence(haystack: string[], needle: string[]): boolean {
 }
 
 /**
+ * A shop name can reasonably show up tokenized two different ways. "H&M"
+ * splits into two tokens (["h","m"]) since "&" is a separator — but if a
+ * source renders it as one word ("HM", no separator at all), that's a
+ * single token and can never match a two-token needle. Trying the
+ * ampersand-removed form too (["hm"]) covers both.
+ */
+function nameTokenVariants(name: string): string[][] {
+  const variants = [tokenize(name)];
+  if (name.includes("&")) variants.push(tokenize(name.replace(/&/g, "")));
+  return variants;
+}
+
+/**
  * Does this SerpAPI shopping result actually belong to one of `candidates`?
  * Checks the product URL's hostname first (authoritative), then falls back
  * to the reported seller name — matched as a whole-word token sequence, not
@@ -128,7 +141,9 @@ export function findMatchingShop(
   if (result.source) {
     const sourceTokens = tokenize(result.source);
     for (const shop of candidates) {
-      if (containsSubsequence(sourceTokens, tokenize(shop.name))) return shop;
+      if (nameTokenVariants(shop.name).some((v) => containsSubsequence(sourceTokens, v))) {
+        return shop;
+      }
     }
   }
   return null;
