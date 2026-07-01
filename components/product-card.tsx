@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Heart, ExternalLink, Trash2, ImageOff, Loader2 } from "lucide-react";
 
 import { cn, proxiedImageUrl } from "@/lib/utils";
-import { clearbitLogo } from "@/lib/shops";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
@@ -15,7 +14,6 @@ export type ProductCardData = {
   url: string;
   image_url: string | null;
   reason: string;
-  shop_logo?: string | null;
 };
 
 export function ProductCard({
@@ -34,11 +32,7 @@ export function ProductCard({
   onRemove?: () => void;
 }) {
   const [imgFailed, setImgFailed] = useState(false);
-  const [logoFailed, setLogoFailed] = useState(false);
   const showImage = product.image_url && !imgFailed;
-  // Fall back to the shop logo (Clearbit). Prefer a model-supplied one, else
-  // derive it from the shop name.
-  const logoUrl = product.shop_logo || clearbitLogo(product.shop);
 
   return (
     <Card className="flex animate-fade-in flex-col overflow-hidden">
@@ -52,21 +46,10 @@ export function ProductCard({
             loading="lazy"
             onError={() => setImgFailed(true)}
           />
-        ) : logoUrl && !logoFailed ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <div className="flex h-full w-full items-center justify-center bg-[#f4f4f3] p-8">
-            <img
-              src={logoUrl}
-              alt={product.shop}
-              className="max-h-16 max-w-[65%] object-contain"
-              loading="lazy"
-              onError={() => setLogoFailed(true)}
-            />
-          </div>
         ) : (
-          <div className="flex h-full w-full flex-col items-center justify-center gap-2 bg-[#f4f4f3] text-muted-foreground">
+          <div className="flex h-full w-full flex-col items-center justify-center gap-2 text-muted-foreground">
             <ImageOff className="size-6" />
-            <span className="text-sm font-medium text-ink">{product.shop}</span>
+            <span className="text-xs font-light">No preview</span>
           </div>
         )}
       </div>
