@@ -26,6 +26,7 @@ type SerpShoppingResult = {
   thumbnail?: string;
   rating?: number;
   reviews?: number;
+  product_id?: string;
 };
 
 function toProduct(result: SerpShoppingResult, shop: Shop): SearchProduct | null {
@@ -40,6 +41,7 @@ function toProduct(result: SerpShoppingResult, shop: Shop): SearchProduct | null
     rating: typeof result.rating === "number" ? result.rating : null,
     reviews: typeof result.reviews === "number" ? result.reviews : null,
     shop_logo: `https://logo.clearbit.com/${shop.domain}`,
+    product_id: result.product_id || null,
   };
 }
 

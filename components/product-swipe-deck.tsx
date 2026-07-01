@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, ArrowRight, ExternalLink, Heart, Star, X } from "lucide-react";
+import { toast } from "sonner";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ExternalLink,
+  Heart,
+  Star,
+  Undo2,
+  X,
+} from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import type { SearchProduct } from "@/lib/types";
@@ -34,33 +43,76 @@ export function ProductSwipeDeck({
   const [dragX, setDragX] = useState(0);
   const [dragging, setDragging] = useState(false);
 
+  // Per-card decision history — lets "back" undo a skip/save instead of the
+  // card being gone for good, and lets us delete a favorite if the user
+  // backs up to a saved card and skips it instead.
+  const [decisions, setDecisions] = useState<Array<"left" | "right" | null>>(() =>
+    products.map(() => null),
+  );
+  const [favoriteIds, setFavoriteIds] = useState<Array<string | null>>(() =>
+    products.map(() => null),
+  );
+  // Full-resolution image fetched lazily per card — SerpAPI's shopping
+  // thumbnail is a small compressed proxy, too blurry at full-card size.
+  const [hiResImages, setHiResImages] = useState<Record<number, string>>({});
+  const fetchedForIndex = useRef<Set<number>>(new Set());
+
   const dragStartX = useRef<number | null>(null);
 
   const total = products.length;
   const product = products[index];
   const done = total > 0 && !product;
 
-  async function saveToFavorites(p: SearchProduct) {
+  async function saveToFavorites(p: SearchProduct, savedIndex: number) {
     const supabase = createClient();
-    await supabase.from("favorites").insert({
-      user_id: userId,
-      title: p.title,
-      shop: p.shop,
-      url: p.url,
-      price: p.price,
-      image_url: p.image_url,
-      rating: p.rating != null ? String(p.rating) : null,
-      reason: null,
-      search_query: query,
+    const { data, error } = await supabase
+      .from("favorites")
+      .insert({
+        user_id: userId,
+        title: p.title,
+        shop: p.shop,
+        url: p.url,
+        price: p.price,
+        image_url: hiResImages[savedIndex] ?? p.image_url,
+        rating: p.rating != null ? String(p.rating) : null,
+        reason: null,
+        search_query: query,
+      })
+      .select("id")
+      .single();
+
+    if (error || !data) {
+      console.error("Failed to save favorite:", error?.message);
+      toast.error(t("swipe.saveFailed"));
+      // The count was incremented optimistically in advance() — undo that
+      // and clear the decision so a later "back" doesn't try to delete a
+      // favorite that was never actually created.
+      setSavedCount((c) => Math.max(0, c - 1));
+      setDecisions((d) => {
+        const next = [...d];
+        next[savedIndex] = null;
+        return next;
+      });
+      return;
+    }
+    setFavoriteIds((ids) => {
+      const next = [...ids];
+      next[savedIndex] = data.id;
+      return next;
     });
   }
 
   function advance(direction: "left" | "right") {
     if (exitDirection || !product) return;
     setExitDirection(direction);
+    setDecisions((d) => {
+      const next = [...d];
+      next[index] = direction;
+      return next;
+    });
     if (direction === "right") {
       setSavedCount((c) => c + 1);
-      void saveToFavorites(product);
+      void saveToFavorites(product, index);
     }
     setTimeout(() => {
       setIndex((i) => i + 1);
@@ -69,20 +121,80 @@ export function ProductSwipeDeck({
     }, EXIT_DURATION_MS);
   }
 
+  function goBack() {
+    if (index === 0 || exitDirection) return;
+    const prevIndex = index - 1;
+    if (decisions[prevIndex] === "right") {
+      setSavedCount((c) => Math.max(0, c - 1));
+      const favoriteId = favoriteIds[prevIndex];
+      if (favoriteId) {
+        const supabase = createClient();
+        void supabase.from("favorites").delete().eq("id", favoriteId);
+      }
+    }
+    setDecisions((d) => {
+      const next = [...d];
+      next[prevIndex] = null;
+      return next;
+    });
+    setFavoriteIds((ids) => {
+      const next = [...ids];
+      next[prevIndex] = null;
+      return next;
+    });
+    setDragX(0);
+    setIndex(prevIndex);
+  }
+
   // Keyboard support (desktop). Ignore arrow keys while typing elsewhere
   // (e.g. the search input just above this deck).
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      if (done) return;
       const tag = (e.target as HTMLElement | null)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "Backspace") {
+        e.preventDefault();
+        goBack();
+        return;
+      }
+      if (done) return;
       if (e.key === "ArrowLeft") advance("left");
       if (e.key === "ArrowRight") advance("right");
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [done, exitDirection, index, product, query]);
+  }, [done, exitDirection, index, product, query, decisions, favoriteIds]);
+
+  // Lazily upgrade the current card's image to a full-resolution one. The
+  // "already fetched" mark is only set on a successful response — in dev,
+  // Strict Mode fires this effect twice (mount → cleanup → mount again), and
+  // marking it eagerly would let the first (cancelled) attempt block the
+  // second, real one from ever completing.
+  useEffect(() => {
+    if (!product?.product_id || fetchedForIndex.current.has(index)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/product-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ productId: product.product_id }),
+        });
+        const data = await res.json();
+        if (cancelled) return;
+        if (typeof data?.image_url === "string") {
+          fetchedForIndex.current.add(index);
+          setHiResImages((m) => ({ ...m, [index]: data.image_url }));
+        }
+      } catch {
+        // keep the original thumbnail
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [index, product]);
 
   function onPointerDown(e: React.PointerEvent<HTMLDivElement>) {
     if ((e.target as HTMLElement).closest("a, button")) return;
@@ -108,6 +220,18 @@ export function ProductSwipeDeck({
     }
   }
 
+  const backControl = (
+    <button
+      type="button"
+      onClick={goBack}
+      disabled={index === 0}
+      aria-label={t("swipe.back")}
+      className="flex items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:text-ink disabled:pointer-events-none disabled:opacity-30"
+    >
+      <Undo2 className="size-3.5" /> {t("swipe.back")}
+    </button>
+  );
+
   if (total === 0) {
     return (
       <Card className="mx-auto max-w-[480px] space-y-2 p-8 text-center">
@@ -120,31 +244,38 @@ export function ProductSwipeDeck({
 
   if (done) {
     return (
-      <Card className="mx-auto max-w-[480px] space-y-4 p-8 text-center">
-        <p className="text-lg font-semibold text-ink">
-          {t(savedCount === 1 ? "swipe.summaryTitleOne" : "swipe.summaryTitle", {
-            count: savedCount,
-          })}
-        </p>
-        <Button asChild>
-          <a href="/favorites">
-            <Heart className="size-4" /> {t("swipe.goToFavorites")}
-          </a>
-        </Button>
-      </Card>
+      <div className="mx-auto max-w-[480px] space-y-3">
+        {index > 0 && <div className="flex justify-center">{backControl}</div>}
+        <Card className="space-y-4 p-8 text-center">
+          <p className="text-lg font-semibold text-ink">
+            {t(savedCount === 1 ? "swipe.summaryTitleOne" : "swipe.summaryTitle", {
+              count: savedCount,
+            })}
+          </p>
+          <Button asChild>
+            <a href="/favorites">
+              <Heart className="size-4" /> {t("swipe.goToFavorites")}
+            </a>
+          </Button>
+        </Card>
+      </div>
     );
   }
 
+  const displayImage = hiResImages[index] ?? product.image_url;
   const translateX =
     exitDirection === "left" ? -600 : exitDirection === "right" ? 600 : dragX;
   const rotate = translateX / 20;
   const opacity = exitDirection ? 0 : 1 - Math.min(Math.abs(dragX) / 400, 0.6);
 
   return (
-    <div className="mx-auto flex max-w-[560px] flex-col items-center gap-6">
-      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        {t("swipe.progress", { current: index + 1, total })}
-      </p>
+    <div className="mx-auto flex max-w-[560px] flex-col items-center gap-3">
+      <div className="flex w-full items-center justify-center gap-3">
+        {backControl}
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {t("swipe.progress", { current: index + 1, total })}
+        </p>
+      </div>
 
       <div className="flex w-full items-center justify-center gap-4">
         <button
@@ -170,12 +301,13 @@ export function ProductSwipeDeck({
             opacity,
           }}
         >
-          <div className="aspect-[4/5] w-full overflow-hidden rounded-lg bg-secondary">
+          <div className="w-full overflow-hidden rounded-lg bg-secondary">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={product.image_url}
+              key={displayImage}
+              src={displayImage}
               alt={product.title}
-              className="h-full w-full object-contain"
+              className="mx-auto max-h-[540px] w-full object-contain"
             />
           </div>
 

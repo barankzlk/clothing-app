@@ -114,6 +114,8 @@ export type SearchProduct = {
   rating: number | null;
   reviews: number | null;
   shop_logo: string;
+  /** SerpAPI's per-result product ID — lets us fetch a full-res image on demand. */
+  product_id: string | null;
 };
 
 export type SavedSearch = {
