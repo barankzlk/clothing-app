@@ -4,9 +4,13 @@ import { humanizeTag } from "@/lib/utils";
 /** Default model for the stylist. Overridable via ANTHROPIC_MODEL env var. */
 export const SEARCH_MODEL = process.env.ANTHROPIC_MODEL || "claude-sonnet-4-6";
 
-const EUROPEAN_SHOPS =
-  "Zalando, ASOS, H&M, Mango, Zara, About You, & Other Stories, COS, Uniqlo, " +
-  "Weekday, Arket, Monki, Pull&Bear, Reserved, Shein (only if budget is under €30)";
+const CURATED_SHOPS =
+  "H&M (hm.com/de_de), Zara (zara.com/de), ASOS (asos.com/de, ships to Germany), " +
+  "Oh Polly (ohpolly.com, ships to Germany), Club L London (clubllondon.com, ships to Germany), " +
+  "Massimo Dutti (massimodutti.com/de), Mango (mango.com/de), Meshki (meshki.com, ships to Germany), " +
+  "COS (cos.com/de_de), House of CB (houseofcb.com, ships to Germany), " +
+  "Sézane (sezane.com/de-de), Toteme (toteme-studio.com, ships to Germany), " +
+  "Loulou de Saison (louloudesaison.com, ships to Germany)";
 
 function line(label: string, value: string | number | null | undefined) {
   return value === null || value === undefined || value === ""
@@ -60,9 +64,10 @@ export function buildSystemPrompt({
 User profile:
 ${profileLines}
 
-Your task: Search the web for real products matching the user's request.
-Focus on major European online shops: ${EUROPEAN_SHOPS}.
-Only return items within the budget of €${budgetMax}. Always include direct product page URLs. If an item doesn't have a clear size match for the user, skip it.
+Your task: Search the web for real, currently in-stock products matching the user's request.
+Only search these shops — do not suggest any other retailer: ${CURATED_SHOPS}.
+For every shop, link its German-market storefront when one exists (a .de domain, or a "/de" or "de_de" locale path); if a shop has no dedicated German site, use its main international site and only include the item if that shop ships to Germany. Never link a page that doesn't ship to Germany.
+Only return items that are currently in stock and within the budget of €${budgetMax}. Always include direct product page URLs. If an item doesn't have a clear size match for the user, skip it.
 
 After researching, respond with ONLY a single JSON object (no markdown, no prose, no code fences) in exactly this shape:
 {
@@ -80,7 +85,7 @@ After researching, respond with ONLY a single JSON object (no markdown, no prose
   "search_summary": "Brief one-line summary of what was found"
 }
 
-Return at most 8 results. Every URL must be a real, direct product page you found via web search — never invent URLs. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
+Return at least 15 results if you can find them (search across all the listed shops to reach this), and at most 18. Every URL must be a real, direct product page you found via web search — never invent URLs. If you find nothing suitable, return an empty "results" array and explain briefly in "search_summary".`;
 }
 
 /** Extract a JSON object from arbitrary model text. */
@@ -108,7 +113,7 @@ export function extractJson(text: string): unknown | null {
   return null;
 }
 
-/** Coerce parsed JSON into a clean, validated product list (max 8). */
+/** Coerce parsed JSON into a clean, validated product list (max 18). */
 export function normalizeProducts(parsed: unknown): {
   results: SearchProduct[];
   search_summary: string;
@@ -139,7 +144,7 @@ export function normalizeProducts(parsed: unknown): {
       reason: typeof r.reason === "string" ? r.reason.trim() : "",
       in_stock: r.in_stock === false ? false : true,
     });
-    if (results.length >= 8) break;
+    if (results.length >= 18) break;
   }
 
   return { results, search_summary: summary };
