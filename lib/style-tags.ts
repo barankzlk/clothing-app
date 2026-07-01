@@ -39,23 +39,7 @@ export const FABRIC_FIT_TAGS = [
   "vintage_inspired",
 ] as const;
 
-/** All style tags, in display order, grouped by section. */
-export const STYLE_TAG_GROUPS = [
-  { label: "Aesthetic", tags: AESTHETIC_STYLES },
-  { label: "Vibe", tags: VIBE_TAGS },
-  { label: "Fabric & Fit", tags: FABRIC_FIT_TAGS },
-] as const;
-
-/** Flat list of every valid style tag. */
-export const ALL_STYLE_TAGS = [
-  ...AESTHETIC_STYLES,
-  ...VIBE_TAGS,
-  ...FABRIC_FIT_TAGS,
-] as const;
-
-export type StyleTag = (typeof ALL_STYLE_TAGS)[number];
-
-/** Fabric preferences for the onboarding/profile multi-select. */
+/** Fabric preferences (materials) for the search filter panel. */
 export const FABRIC_PREFERENCES = [
   "cotton",
   "linen",
@@ -68,6 +52,32 @@ export const FABRIC_PREFERENCES = [
 ] as const;
 
 export type FabricPreference = (typeof FABRIC_PREFERENCES)[number];
+
+export const COLORS = [
+  "black",
+  "white",
+  "beige",
+  "navy",
+  "green",
+  "brown",
+  "red",
+  "pink",
+] as const;
+
+export type ColorTag = (typeof COLORS)[number];
+
+/**
+ * Filter groups shown on the search page. Selecting any of these drives the
+ * "not sure what to search for?" suggestions — they're per-search, ephemeral,
+ * and never saved to the profile.
+ */
+export const SEARCH_FILTER_GROUPS = [
+  { label: "Aesthetic", tags: AESTHETIC_STYLES },
+  { label: "Occasion", tags: VIBE_TAGS },
+  { label: "Fabric & Fit", tags: FABRIC_FIT_TAGS },
+  { label: "Materials", tags: FABRIC_PREFERENCES },
+  { label: "Colors", tags: COLORS },
+] as const;
 
 export const GENDERS = [
   { value: "female", label: "Female" },
@@ -101,18 +111,6 @@ export const BOTTOM_SIZES = [
   "42",
   "44",
   "46",
-] as const;
-
-/** Occasion filter options used in the search sidebar. */
-export const OCCASION_OPTIONS = [
-  { value: "any", label: "Any occasion" },
-  { value: "casual_everyday", label: "Casual / Everyday" },
-  { value: "date_night", label: "Date night" },
-  { value: "work_office", label: "Work / Office" },
-  { value: "festival", label: "Festival" },
-  { value: "weekend_chill", label: "Weekend chill" },
-  { value: "formal_event", label: "Formal event" },
-  { value: "travel", label: "Travel" },
 ] as const;
 
 export const BUDGET_MIN = 10;

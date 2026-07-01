@@ -10,12 +10,16 @@ and **Supabase** (Postgres + Auth).
 ## Features
 
 - Email/password auth (Supabase) with a protected-route middleware
-- 4-step onboarding wizard (about you → measurements → style → preferences)
-- Editable profile (sizes, body shape, style tags, fabrics, budget, notes)
+- 3-step onboarding wizard (about you → measurements → budget)
+- Editable profile — name, gender, age, height, weight, body shape, sizes, budget
 - Search: one query fans out into direct search-results links across the shop
   list (H&M, Zara, ASOS, Oh Polly, Club L London, Massimo Dutti, Mango,
   Meshki, COS, House of CB, Sézane, Toteme, Loulou de Saison, Uniqlo) — no AI
   call, no stock guessing, zero per-search cost
+- Search-page filters (aesthetic, occasion, fabric & fit, materials, colors) —
+  per-search only, never saved to the profile
+- Filter-driven idea suggestions ("what about a half-zip pullover?") via a
+  small, cheap Claude text completion — the only AI call left in the app
 - Save/remove favorites, sortable favorites page
 - Editorial, minimal design system (muted sage accent, no shadows, 8px radius)
 
@@ -40,6 +44,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase → Project Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase → Project Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase → Project Settings → API (server-only) |
+| `ANTHROPIC_API_KEY` | https://console.anthropic.com/ (only used by `/api/suggestions`) |
 
 ### 3. Set up the database
 
@@ -80,15 +85,17 @@ then to `/search`.
 ```
 app/
   auth/            Sign in / create account (+ /auth/callback)
-  onboarding/      4-step profile wizard
-  search/          Main search page (sidebar + shop search-link grid)
+  onboarding/      3-step profile wizard
+  search/          Main search page (sidebar filters + shop search-link grid)
   favorites/       Saved items
   profile/         Edit profile
+  api/suggestions/ Filter-driven idea suggestions (Anthropic, no tools)
 components/        UI + feature components (components/ui = shadcn)
 lib/
-  supabase/        Browser, server, and middleware clients
-  types.ts         Hand-written DB types (mirror the migration)
-  style-tags.ts    Hardcoded style tags, sizes, body shapes, budget
-  shops.ts         Shop list + per-shop search-URL builders
+  supabase/            Browser, server, and middleware clients
+  types.ts             Hand-written DB types (mirror the migration)
+  style-tags.ts        Sizes, body shapes, budget, search filter tags
+  shops.ts             Shop list + per-shop search-URL builders
+  suggestion-prompt.ts System prompt builder + response parsing
 supabase/migrations/  SQL schema
 ```

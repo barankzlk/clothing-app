@@ -28,10 +28,7 @@ export type ProfileDraft = {
   clothing_size_top: string;
   clothing_size_bottom: string;
   shoe_size_eu: string;
-  style_tags: string[];
-  fabric_preferences: string[];
   budget_max_eur: number;
-  style_notes: string;
 };
 
 const numToStr = (n: number | null | undefined) =>
@@ -49,10 +46,7 @@ export function draftFromProfile(p: Partial<ProfileRow> | null): ProfileDraft {
     clothing_size_top: p?.clothing_size_top ?? "",
     clothing_size_bottom: p?.clothing_size_bottom ?? "",
     shoe_size_eu: numToStr(p?.shoe_size_eu),
-    style_tags: p?.style_tags ?? [],
-    fabric_preferences: p?.fabric_preferences ?? [],
     budget_max_eur: p?.budget_max_eur ?? 150,
-    style_notes: p?.style_notes ?? "",
   };
 }
 
@@ -75,10 +69,7 @@ export function draftToProfilePayload(d: ProfileDraft): Partial<ProfileRow> {
     clothing_size_top: d.clothing_size_top || null,
     clothing_size_bottom: d.clothing_size_bottom || null,
     shoe_size_eu: strToNum(d.shoe_size_eu),
-    style_tags: d.style_tags,
-    fabric_preferences: d.fabric_preferences,
     budget_max_eur: d.budget_max_eur,
-    style_notes: d.style_notes.trim() || null,
   };
 }
 

@@ -11,9 +11,7 @@ import {
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
-  FABRIC_PREFERENCES,
   GENDERS,
-  STYLE_TAG_GROUPS,
   TOP_SIZES,
 } from "@/lib/style-tags";
 import type { Profile } from "@/lib/types";
@@ -25,7 +23,6 @@ import { Slider } from "@/components/ui/slider";
 import {
   BodyShapeSelector,
   NumberField,
-  PillMultiSelect,
   SelectField,
   draftFromProfile,
   draftToProfilePayload,
@@ -35,8 +32,7 @@ import {
 const STEPS = [
   { title: "About you", subtitle: "The basics, so we can address you right." },
   { title: "Your measurements", subtitle: "We only surface pieces in your size." },
-  { title: "Your style", subtitle: "Pick at least three that feel like you." },
-  { title: "Preferences", subtitle: "Fabrics, budget, and anything else." },
+  { title: "Budget", subtitle: "Your default per-item budget." },
 ] as const;
 
 export function OnboardingWizard({
@@ -59,18 +55,6 @@ export function OnboardingWizard({
     setDraft((d) => ({ ...d, ...partial }));
   }
 
-  function toggleInList(key: "style_tags" | "fabric_preferences", tag: string) {
-    setDraft((d) => {
-      const list = d[key];
-      return {
-        ...d,
-        [key]: list.includes(tag)
-          ? list.filter((t) => t !== tag)
-          : [...list, tag],
-      };
-    });
-  }
-
   function validateStep(index: number): string | null {
     if (index === 0) {
       if (!draft.name.trim()) return "Please tell us your name.";
@@ -86,10 +70,6 @@ export function OnboardingWizard({
       if (!draft.clothing_size_top) return "Please choose a top size.";
       if (!draft.clothing_size_bottom) return "Please choose a bottom size.";
       if (!draft.shoe_size_eu.trim()) return "Please enter your shoe size.";
-    }
-    if (index === 2) {
-      if (draft.style_tags.length < 3)
-        return "Select at least 3 style tags to continue.";
     }
     return null;
   }
@@ -241,32 +221,6 @@ export function OnboardingWizard({
 
         {step === 2 && (
           <div className="space-y-6">
-            {STYLE_TAG_GROUPS.map((group) => (
-              <div key={group.label} className="space-y-3">
-                <Label className="text-muted-foreground">{group.label}</Label>
-                <PillMultiSelect
-                  options={group.tags}
-                  value={draft.style_tags}
-                  onToggle={(t) => toggleInList("style_tags", t)}
-                />
-              </div>
-            ))}
-            <p className="text-xs font-light text-muted-foreground">
-              {draft.style_tags.length} selected · minimum 3
-            </p>
-          </div>
-        )}
-
-        {step === 3 && (
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <Label>Fabric preferences</Label>
-              <PillMultiSelect
-                options={FABRIC_PREFERENCES}
-                value={draft.fabric_preferences}
-                onToggle={(t) => toggleInList("fabric_preferences", t)}
-              />
-            </div>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <Label>Default budget per item</Label>
@@ -285,17 +239,6 @@ export function OnboardingWizard({
                 <span>€{BUDGET_MIN}</span>
                 <span>€{BUDGET_MAX}</span>
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="notes">Anything else about your style?</Label>
-              <textarea
-                id="notes"
-                value={draft.style_notes}
-                onChange={(e) => patch({ style_notes: e.target.value })}
-                placeholder="Optional — e.g. 'I avoid logos and love earthy tones.'"
-                rows={3}
-                className="flex w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-light ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              />
             </div>
           </div>
         )}

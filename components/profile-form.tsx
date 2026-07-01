@@ -11,9 +11,7 @@ import {
   BUDGET_MAX,
   BUDGET_MIN,
   BUDGET_STEP,
-  FABRIC_PREFERENCES,
   GENDERS,
-  STYLE_TAG_GROUPS,
   TOP_SIZES,
 } from "@/lib/style-tags";
 import type { Profile } from "@/lib/types";
@@ -26,7 +24,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   BodyShapeSelector,
   NumberField,
-  PillMultiSelect,
   SelectField,
   draftFromProfile,
   draftToProfilePayload,
@@ -75,23 +72,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
     setDraft((d) => ({ ...d, ...partial }));
   }
 
-  function toggleInList(key: "style_tags" | "fabric_preferences", tag: string) {
-    setDraft((d) => {
-      const list = d[key];
-      return {
-        ...d,
-        [key]: list.includes(tag)
-          ? list.filter((t) => t !== tag)
-          : [...list, tag],
-      };
-    });
-  }
-
   async function save() {
-    if (draft.style_tags.length < 3) {
-      toast.error("Keep at least 3 style tags so search stays useful.");
-      return;
-    }
     setSaving(true);
     const supabase = createClient();
     const { data, error } = await supabase
@@ -193,32 +174,9 @@ export function ProfileForm({ profile }: { profile: Profile }) {
       </Section>
 
       <Section
-        title="Your style"
-        description="Pick the aesthetics, vibes, and fits that suit you (min. 3)."
+        title="Budget"
+        description="Your default per-item budget — you can still adjust it per search."
       >
-        <div className="space-y-5">
-          {STYLE_TAG_GROUPS.map((group) => (
-            <div key={group.label} className="space-y-3">
-              <Label className="text-muted-foreground">{group.label}</Label>
-              <PillMultiSelect
-                options={group.tags}
-                value={draft.style_tags}
-                onToggle={(t) => toggleInList("style_tags", t)}
-              />
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title="Preferences">
-        <div className="space-y-3">
-          <Label>Fabric preferences</Label>
-          <PillMultiSelect
-            options={FABRIC_PREFERENCES}
-            value={draft.fabric_preferences}
-            onToggle={(t) => toggleInList("fabric_preferences", t)}
-          />
-        </div>
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <Label>Default budget per item</Label>
@@ -232,17 +190,6 @@ export function ProfileForm({ profile }: { profile: Profile }) {
             step={BUDGET_STEP}
             value={[draft.budget_max_eur]}
             onValueChange={([v]) => patch({ budget_max_eur: v ?? BUDGET_MIN })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="p-notes">Anything else about your style?</Label>
-          <textarea
-            id="p-notes"
-            value={draft.style_notes}
-            onChange={(e) => patch({ style_notes: e.target.value })}
-            rows={3}
-            placeholder="Optional notes for your stylist."
-            className="flex w-full rounded-md border border-input bg-card px-3 py-2 text-sm font-light ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
           />
         </div>
       </Section>
